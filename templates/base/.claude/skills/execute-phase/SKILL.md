@@ -25,7 +25,7 @@ Repeat until `scripts/task.py ready -p <NN>` is empty:
 
 1. **Dispatch.** For each ready task, spawn an `implementer` with
    `isolation: "worktree"` and the prompt `Implement task <id>.` Send all the
-   spawns for a wave in one message so they run in parallel. Cap a wave at 5
+   spawns for a wave in one message so they run in parallel. Cap a wave at 4
    agents. Leave any extra tasks for the next round.
 2. **Gate each result** as it returns:
    1. Spawn a `reviewer` with the task ID and the worktree branch range
