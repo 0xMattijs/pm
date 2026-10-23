@@ -1,0 +1,80 @@
+# Bootstraps a throwaway project per layer, the same way /pm:new-project
+# does, and proves it works: stack checks, tracker, hooks, and sync.
+name: Template CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"  # weekly: catches upstream scaffolder and action drift
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: shellcheck
+        run: shellcheck -S warning scripts/*.sh templates/base/scripts/check.sh templates/base/.claude/hooks/format.sh
+      - name: python syntax
+        run: python3 -m py_compile templates/base/scripts/task.py templates/base/.claude/hooks/subagent-guard.py
+      - name: plugin manifest
+        run: npx -y @anthropic-ai/claude-code plugin validate .
+
+  layer:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { layer: python-uv, os: ubuntu-latest }
+          - { layer: ts-next, os: ubuntu-latest }
+          - { layer: go, os: ubuntu-latest }
+          - { layer: rust, os: ubuntu-latest }
+          - { layer: expo, os: ubuntu-latest }
+          - { layer: flutter, os: ubuntu-latest }
+          - { layer: android-kotlin, os: ubuntu-latest }
+          - { layer: ios-swift, os: macos-15 }
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.layer }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Copier renders from git history
+      - uses: astral-sh/setup-uv@v6
+      - name: node + pnpm
+        if: contains(fromJSON('["ts-next","expo"]'), matrix.layer)
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - if: contains(fromJSON('["ts-next","expo"]'), matrix.layer)
+        run: corepack enable pnpm
+      - if: matrix.layer == 'go'
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - if: matrix.layer == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - if: matrix.layer == 'flutter'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - if: matrix.layer == 'android-kotlin'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - if: matrix.layer == 'android-kotlin'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+      - if: matrix.layer == 'ios-swift'
+        run: brew install xcodegen
+      - name: selftest
+        run: scripts/selftest.sh ${{ matrix.layer }}

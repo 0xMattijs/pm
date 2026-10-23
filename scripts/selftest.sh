@@ -39,7 +39,7 @@ printf '## Goal\nx\n\n## Acceptance criteria\n- [ ] y\n\n## Scope\n- Owns: %s/b\
   | scripts/task.py new -p 01 -t "Second" -w 2 -d 01-01 >/dev/null
 scripts/task.py lint -p 01
 [ "$(scripts/task.py ready | cut -c1-5)" = "01-01" ]
-scripts/task.py set 01-01 done >/dev/null
+scripts/task.py set 01-01 "done" >/dev/null
 [ "$(scripts/task.py ready | cut -c1-5)" = "01-02" ]
 scripts/task.py phases | grep -q in-progress
 end

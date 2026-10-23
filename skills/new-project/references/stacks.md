@@ -24,67 +24,33 @@ Marketplace integrations, and load the `vercel:marketplace` skill before you
 recommend a provider. Don't provision anything during bootstrap. Phase 01
 tasks do that.
 
-## Native scaffolders (step 4.2)
+## Scaffolding (steps 4.2 and 4.4)
 
-Run these from `<dest>`. Replace `<p>` with the layer path. Each scaffolder
-can change its flags over time, so check `--help` once if a command fails,
-then adapt it.
+`<pm>/scripts/scaffold.sh` owns the native scaffolder commands and the
+post-template fix-ups for every layer. Template CI runs the same script, so
+these commands are tested weekly against the latest upstream scaffolders.
 
-**python-uv**
 ```
-uv init --package --vcs none --python <ver> --name <slug> <p>
-cd <p> && uv add --dev ruff pyright pytest
-```
-
-**ts-next** (the directory must be empty except for `.git`)
-```
-pnpm create next-app@latest <p> --ts --app --src-dir --tailwind --biome \
-  --import-alias "@/*" --use-pnpm --disable-git --yes
-cd <p> && pnpm add -D vitest @vitejs/plugin-react jsdom @testing-library/react
-```
-Then add `"test": "vitest run --passWithNoTests"` to `package.json` scripts.
-
-**go**
-```
-mkdir -p <p>/cmd/<slug> && cd <p> && go mod init github.com/<owner>/<slug>
-```
-Write a minimal `cmd/<slug>/main.go` and one test.
-
-**rust**
-```
-cargo init --vcs none --name <slug> <p>
+<pm>/scripts/scaffold.sh pre  <layer> <dest> <path> <slug> <bundle_id>   # step 4.2
+<pm>/scripts/scaffold.sh post <layer> <dest> <path> <slug> <bundle_id>   # step 4.4
 ```
 
-**expo**
-```
-pnpm create expo-app@latest <p> --template default --yes
-cd <p> && pnpm add -D @biomejs/biome && pnpm exec biome init
-npx expo install jest-expo jest @testing-library/react-native -- -D
-```
-Set `expo.ios.bundleIdentifier` and `expo.android.package` in `app.json` to
-the bundle ID. Add the `"jest": {"preset": "jest-expo"}` config and a
-`"test": "jest --passWithNoTests"` script.
+What each layer gets:
 
-**flutter**
-```
-flutter create --org <bundle id minus last segment> --project-name <slug_snake> \
-  --platforms ios,android <p>
-```
+| Layer | pre | post |
+|---|---|---|
+| python-uv | `uv init --package`, dev dependencies ruff, pyright, pytest | none |
+| ts-next | `create-next-app` (App Router, Tailwind, Biome, src/), Vitest | Biome autofix |
+| go | `go mod init`, `cmd/<slug>/main.go` and a test | none |
+| rust | `cargo init` | none |
+| expo | `create-expo-app`, Biome, jest-expo, bundle IDs in `app.json` | `pnpm install` (hoisted), Biome autofix |
+| flutter | `flutter create` for iOS and Android | none |
+| ios-swift | none; the template seeds the skeleton | `xcodegen generate` on macOS |
+| android-kotlin | none; the template seeds the skeleton | `gradle wrapper`, if Gradle is installed |
 
-**ios-swift and android-kotlin:** there's no scaffolder. The template seeds
-the app skeleton.
+Set `GH_OWNER` for the Go module path and `PYTHON_VERSION` to override 3.13.
 
-## Post-template steps (step 4.4)
-
-- **ts-next:** run `pnpm exec biome check --write .` once, so generated
-  files match the lint rules.
-- **expo:** run `pnpm install` (this picks up `.npmrc` hoisting), then
-  `pnpm exec biome check --write .`.
-- **ios-swift:** on macOS, run `xcodegen generate` in `<p>` and build once.
-  On Linux, skip this; CI covers it.
-- **android-kotlin:** if `gradle` is installed, run
-  `cd <p> && gradle wrapper --gradle-version 8.14.3` and commit the wrapper.
-  Otherwise, note in the summary that CI uses a provisioned Gradle until the
-  wrapper is added.
-- **All layers:** run `scripts/check.sh <layer>` and fix problems before the
-  first commit.
+If a scaffolder fails because its flags changed upstream, fix it in
+`scaffold.sh` (check `--help`), commit the fix to the pm repo, and rerun.
+Don't work around it by hand in the project. After `post`, run
+`scripts/check.sh <layer>` and fix any problems before the first commit.

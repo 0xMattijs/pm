@@ -25,6 +25,6 @@ The scripts are in `<pm>/scripts/`. This skill's base directory is
    a PR.
 
 To add a stack layer to an existing project, run
-`<pm>/scripts/apply-layer.sh . <layer> path=<path>` on the sync branch, and
-follow that layer's native scaffolder and post-template steps in
-`<pm>/skills/new-project/references/stacks.md`.
+`<pm>/scripts/scaffold.sh pre <layer> . <path>`, then
+`<pm>/scripts/apply-layer.sh . <layer> path=<path>`, then
+`<pm>/scripts/scaffold.sh post <layer> . <path>` on the sync branch.

@@ -50,15 +50,16 @@ Order matters. Native scaffolders need an empty directory, and templates come
 after them.
 
 1. `mkdir -p <dest> && git -C <dest> init -b main`.
-2. For each stack layer, run its native scaffolder from
-   `references/stacks.md`, at the layer's path.
+2. For each stack layer, run
+   `<pm>/scripts/scaffold.sh pre <layer> <dest> <path> <slug> <bundle_id>`.
 3. Apply the layers, base first:
    ```
    <pm>/scripts/apply-layer.sh <dest> base project_name="<Name>" project_slug=<slug> \
      project_description="<one line>" tracker=<files|github> planning=<native|gsd>
    <pm>/scripts/apply-layer.sh <dest> <layer> path=<path> [layer options]
    ```
-4. Run the layer's post-template steps from `references/stacks.md`.
+4. For each stack layer, run
+   `<pm>/scripts/scaffold.sh post <layer> <dest> <path> <slug> <bundle_id>`.
 
 ## 5. Write the plan and agent config
 

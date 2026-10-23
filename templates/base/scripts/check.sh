@@ -2,7 +2,7 @@
 # Runs every stack check in scripts/check.d/. Each stack layer adds one script.
 # Usage: scripts/check.sh [layer...]   (no args = all layers)
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 checks=()
 if [ $# -gt 0 ]; then

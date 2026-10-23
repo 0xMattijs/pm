@@ -15,6 +15,13 @@ pkg_script() {  # pkg_script <dir> <name> <command>
            j.scripts={...j.scripts,[process.argv[2]]:process.argv[3]};fs.writeFileSync(f,JSON.stringify(j,null,2)+"\n")' "$1" "$2" "$3"
 }
 
+pnpm_lenient_builds() {  # pnpm_lenient_builds <dir>
+  # pnpm 11 fails installs when it skips a dependency's build scripts. Keep
+  # skipping them (the safe default) but warn instead of failing.
+  local f="$1/pnpm-workspace.yaml"
+  grep -qs '^strictDepBuilds:' "$f" || echo "strictDepBuilds: false" >> "$f"
+}
+
 case "$stage:$layer" in
   pre:python-uv)
     uv init --quiet --package --vcs none --python "${PYTHON_VERSION:-3.13}" --name "$slug" "$p"
@@ -23,6 +30,7 @@ case "$stage:$layer" in
   pre:ts-next)
     pnpm create next-app@latest "$p" --ts --app --src-dir --tailwind --biome \
       --import-alias "@/*" --use-pnpm --disable-git --yes
+    pnpm_lenient_builds "$p"
     (cd "$p" && pnpm add -D vitest @vitejs/plugin-react jsdom @testing-library/react)
     pkg_script "$p" test "vitest run --passWithNoTests"
     ;;
@@ -37,6 +45,7 @@ case "$stage:$layer" in
     ;;
   pre:expo)
     pnpm create expo-app@latest "$p" --template default --yes
+    pnpm_lenient_builds "$p"
     (cd "$p" && pnpm add -D @biomejs/biome && pnpm exec biome init \
       && npx expo install jest-expo jest @testing-library/react-native -- -D)
     node -e 'const f=process.argv[1]+"/app.json",fs=require("fs"),j=JSON.parse(fs.readFileSync(f));
