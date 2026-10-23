@@ -1,0 +1,36 @@
+# Risk rules for scripts/risk.py. A diff that matches any rule needs a human.
+# Add project-specific rules freely. Remove a rule only after a human decides to.
+#
+# path: <glob>      matched against changed file paths (* also matches /)
+# content: <regex>  matched against added lines
+
+path: *auth*
+path: *login*
+path: *session*
+path: *permission*
+path: *secret*
+path: *billing*
+path: *payment*
+path: *checkout*
+path: *migration*
+path: *.sql
+path: .github/workflows/*
+path: .claude/settings.json
+path: .claude/risk.txt
+path: .claude/hooks/*
+path: scripts/risk.py
+path: *Dockerfile*
+path: *terraform*
+path: *.tf
+path: *.entitlements
+path: *Info.plist
+path: *AndroidManifest.xml
+path: *eas.json
+path: *vercel.ts
+path: *vercel.json
+
+content: BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY
+content: (?i)\b(drop|truncate)\s+table\b
+content: (?i)\bdelete\s+from\s+\w+\s*;
+content: (?i)(api[_-]?key|secret|password|token)\s*[:=]\s*["'][^"']{8,}
+content: (?i)dangerouslySetInnerHTML|eval\(

@@ -73,7 +73,7 @@ case "$stage:$layer" in
   post:expo)
     # Generated native folders and Expo's cache aren't source; keep Biome out.
     node -e 'const f=process.argv[1]+"/biome.json",fs=require("fs"),j=JSON.parse(fs.readFileSync(f));
-             j.files={...j.files,includes:["**","!**/ios","!**/android","!**/.expo"]};
+             j.files={...j.files,includes:["**","!**/ios","!**/android","!**/.expo","!**/assets"]};
              fs.writeFileSync(f,JSON.stringify(j,null,2)+"\n")' "$p"
     (cd "$p" && pnpm install --silent && pnpm exec biome check --write --unsafe . >/dev/null || true)
     ;;
