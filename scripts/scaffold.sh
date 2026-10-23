@@ -66,7 +66,14 @@ case "$stage:$layer" in
     (cd "$p" && pnpm exec biome check --write . >/dev/null || true)
     ;;
   post:expo)
-    (cd "$p" && pnpm install --silent && pnpm exec biome check --write . >/dev/null || true)
+    # Expo's starter renders text through <ThemedText>, a <Text> wrapper that
+    # Biome's raw-text rule can't see through. Teach it, keep the rule on.
+    node -e 'const f=process.argv[1]+"/biome.json",fs=require("fs"),j=JSON.parse(fs.readFileSync(f));
+             j.linter??={};j.linter.rules??={};j.linter.rules.correctness??={};
+             j.linter.rules.correctness.noReactNativeRawText={level:"error",options:{skip:["ThemedText"]}};
+             j.files={...j.files,includes:["**","!**/ios","!**/android","!**/.expo"]};
+             fs.writeFileSync(f,JSON.stringify(j,null,2)+"\n")' "$p"
+    (cd "$p" && pnpm install --silent && pnpm exec biome check --write --unsafe . >/dev/null || true)
     ;;
   post:ios-swift)
     if [ "$(uname)" = Darwin ] && command -v xcodegen >/dev/null; then (cd "$p" && xcodegen generate --quiet); fi
