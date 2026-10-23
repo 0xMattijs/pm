@@ -25,6 +25,10 @@ cat > ROADMAP.md <<'EOF'
 | 02-signup | 01 | signup |
 | 03-profile | 01 | profile |
 | 04-dashboard | 02, 03 | dashboard |
+## Milestone 2: Teams
+| Phase | Depends | Goal |
+|---|---|---|
+| 05-teams | 04 | teams |
 EOF
 contract() { printf '## Goal\nx\n\n## Acceptance criteria\n- [ ] y\n\n## Scope\n- Owns: %s\n\n## Test plan\nunit\n\n## Verify\n`true`\n' "$1"; }
 mkdir -p docs/phases/01-foundation
@@ -90,5 +94,10 @@ ok "file ownership overlap with a running task blocks dispatch"
 echo '{"max_agents": 1}' > .claude/pm.json
 [ -z "$(ids ready --slots)" ] || fail "one agent busy and max_agents=1 means no free slots"
 ok "--slots respects max_agents"
+
+for i in 04-01 04-02 04-03; do $T set $i done >/dev/null; done
+[ -z "$($T next-phases)" ] || fail "milestone 2 must not start without /replan: $($T next-phases)"
+python3 scripts/agent-precheck.py | grep -q 'milestone boundary before 05-teams' || fail "precheck should report the boundary"
+ok "chaining stops at the milestone boundary"
 
 echo "test-parallel: all passed"

@@ -234,6 +234,10 @@ class GithubBackend:
         return t["url"]
 
 
+def backend():
+    return GithubBackend() if tracker_kind() == "github" else FilesBackend()
+
+
 # --- commands ----------------------------------------------------------------
 
 def config(key):
@@ -313,8 +317,22 @@ def ready(tasks, phase=None, limit=None):
     return out
 
 
+def milestone_boundary(tasks):
+    """The first phase of the next milestone, if the current one is finished
+    and the next hasn't started. Crossing it needs /replan, so automation stops."""
+    rows = roadmap()
+    pstate = phase_states(tasks)
+    pending = [r for r in rows if pstate.get(r["phase"]) != "done"]
+    if not pending or pending[0] is rows[0]:
+        return None
+    started = any(r["milestone"] == pending[0]["milestone"] and r["phase"] in pstate for r in rows)
+    return None if started else pending[0]
+
+
 def next_phases(tasks):
     """Unplanned phases in the current milestone whose dependencies are done."""
+    if milestone_boundary(tasks):
+        return []
     rows = roadmap()
     pstate = phase_states(tasks)
     current = next((r["milestone"] for r in rows if pstate.get(r["phase"]) != "done"), None)
@@ -447,7 +465,7 @@ def main():
     sp.add_argument("text")
     args = p.parse_args()
 
-    backend = GithubBackend() if tracker_kind() == "github" else FilesBackend()
+    backend = globals()["backend"]()
 
     if args.cmd == "init":
         if isinstance(backend, GithubBackend):
