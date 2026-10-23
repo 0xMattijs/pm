@@ -2,11 +2,12 @@
 # Cut a pm release. Projects bootstrap and sync from the newest release tag,
 # so a release is what makes template changes reach them.
 #
-# Usage: release.sh <X.Y.Z> [--dry-run]
+# Usage: release.sh <X.Y.Z> [--dry-run] [--notes-file <file>]
 #
 # Refuses unless: you're on main, the tree is clean, main matches origin, and
 # template CI passed on this exact commit. Then it bumps the plugin version,
-# prepends the changelog (from Conventional Commits since the last tag),
+# prepends the changelog (from Conventional Commits since the last tag, or
+# from --notes-file for hand-written notes),
 # commits, tags vX.Y.Z, pushes, and creates a GitHub release.
 #
 # To undo a bad release, roll forward: revert the change and release a patch.
@@ -14,10 +15,24 @@
 set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
-version="${1:-}"; dry="${2:-}"
-[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: release.sh <X.Y.Z> [--dry-run]" >&2; exit 1; }
+version="${1:-}"; shift || true
+dry=""; notes_file=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dry-run) dry=1 ;;
+    --notes-file) notes_file="${2:?--notes-file needs a path}"; shift ;;
+    *) echo "unknown option: $1" >&2; exit 1 ;;
+  esac
+  shift
+done
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: release.sh <X.Y.Z> [--dry-run] [--notes-file <file>]" >&2; exit 1; }
 tag="v$version"
-fail() { echo "release: $*" >&2; exit 1; }
+refused=0
+# In a dry run, report every check that would fail instead of stopping.
+fail() {
+  if [ -n "$dry" ]; then echo "would refuse: $*" >&2; refused=1
+  else echo "release: $*" >&2; exit 1; fi
+}
 
 prev=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
 if [ -n "$prev" ]; then
@@ -27,7 +42,7 @@ fi
 
 [ "$(git branch --show-current)" = main ] || fail "switch to main first"
 [ -z "$(git status --porcelain)" ] || fail "working tree not clean"
-git fetch --quiet origin main --tags
+git fetch --quiet origin main --tags || fail "can't fetch origin"
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || fail "main differs from origin/main; push or pull first"
 
 sha=$(git rev-parse HEAD)
@@ -45,12 +60,23 @@ section() {  # section <title> <regex>
   lines=$(git log --no-merges --format='%s' "$range" | grep -E "$2" | grep -v '^chore(release)' | sed -E 's/^[a-z]+(\([^)]*\))?!?: /- /' || true)
   [ -z "$lines" ] || printf '### %s\n\n%s\n\n' "$1" "$lines"
 }
-notes="$(section Added '^feat')$(section Fixed '^fix')$(section Changed '^(docs|refactor|perf|chore|ci|test|build)')"
-[ -n "$notes" ] || notes="- Maintenance release."$'\n'
+if [ -n "$notes_file" ]; then
+  notes="$(cat "$notes_file")"
+else
+  # One substitution for all sections: each one's trailing blank line would be
+  # stripped by its own $(...).
+  notes="$(section Added '^feat'; section Fixed '^fix'; section Changed '^(docs|refactor|perf|chore|ci|build)')"
+fi
+[ -n "$notes" ] || notes="- Maintenance release."
+notes+=$'\n'
+
 
 echo "== $tag (previous: ${prev:-none})"
 printf '%s\n' "$notes"
-[ "$dry" = "--dry-run" ] && { echo "(dry run: nothing changed)"; exit 0; }
+if [ -n "$dry" ]; then
+  [ "$refused" = 0 ] && echo "(dry run: all checks pass, nothing changed)" || echo "(dry run: nothing changed)"
+  exit "$refused"
+fi
 
 python3 - "$version" <<'PY'
 import json, sys
@@ -72,7 +98,7 @@ PY
   echo
   echo "## $tag ($(date +%Y-%m-%d))"
   echo
-  printf '%s' "$notes"
+  printf '%s\n' "$notes"
   [ -f CHANGELOG.md ] && sed '1{/^# Changelog$/d}' CHANGELOG.md | sed '1{/^$/d}'
 } > CHANGELOG.md.new && mv CHANGELOG.md.new CHANGELOG.md
 
