@@ -33,7 +33,9 @@ Repeat until `scripts/task.py ready -p <NN>` is empty:
    2. On PASS, merge the branch into the phase branch with `git merge --no-ff`,
       run `scripts/check.sh`, run `scripts/task.py set <id> done`, and remove
       the worktree.
-   3. On FAIL, send the findings back to an implementer in the same worktree.
+   3. On FAIL, run `scripts/task.py set <id> doing`, then send the findings
+      back to an implementer in the same worktree with the prompt
+      `Fix review findings for task <id>.`
       After a second FAIL, run `scripts/task.py set <id> blocked` and report
       the task to the user.
 3. **Handle merge conflicts.** A conflict means the wave split was wrong.

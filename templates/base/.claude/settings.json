@@ -47,6 +47,18 @@
     ]
   },
   "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "implementer|reviewer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-guard.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",

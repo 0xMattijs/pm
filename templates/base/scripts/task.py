@@ -12,7 +12,7 @@ same commands:
   task.py lint [-p 01]                check contracts: criteria, scope, wave conflicts
   task.py list [-p 01] [-s todo]      list tasks
   task.py ready [-p 01]               todo tasks whose dependencies are done
-  task.py show 01-03                  print a task contract
+  task.py show 01-03 [--json]         print a task contract (json: status and notes)
   task.py new -p 01 -t "Title" [-w 1] [-d 01-01,01-02] < body.md
   task.py set 01-03 doing             change status
   task.py note 01-03 "text"           append a handoff note
@@ -29,7 +29,22 @@ from pathlib import Path
 
 STATUSES = ["todo", "doing", "review", "done", "blocked"]
 ROOT = Path(__file__).resolve().parent.parent
-PHASES = ROOT / "docs" / "phases"
+
+
+def main_checkout(root):
+    """Tracker files live in the main checkout, shared by every worktree.
+
+    Implementers run in git worktrees. If each one wrote status into its own
+    copy of docs/phases/, the orchestrator would never see the change.
+    """
+    r = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                       cwd=root, text=True, capture_output=True)
+    if r.returncode == 0 and r.stdout.strip().endswith("/.git"):
+        return Path(r.stdout.strip()).parent
+    return root
+
+
+PHASES = main_checkout(ROOT) / "docs" / "phases"
 
 
 def slugify(text):
@@ -121,8 +136,14 @@ class FilesBackend:
         t["body"] = t["body"].rstrip() + f"\n- {stamp}: {text}\n"
         self._write(t)
 
+    def notes(self, task_id):
+        log = self.get(task_id)["body"].split("## Log", 1)
+        if len(log) < 2:
+            return []
+        return [m.group(1) for m in re.finditer(r"^- [\d-]+ [\d:]+: (.*)$", log[1], re.M)]
+
     def location(self, t):
-        return str(t["path"].relative_to(ROOT))
+        return str(t["path"].relative_to(PHASES.parent.parent))
 
 
 # --- github backend ----------------------------------------------------------
@@ -198,6 +219,11 @@ class GithubBackend:
 
     def note(self, task_id, text):
         self._gh("issue", "comment", str(self.get(task_id)["number"]), "--body", text)
+
+    def notes(self, task_id):
+        out = self._gh("issue", "view", str(self.get(task_id)["number"]),
+                       "--json", "comments")
+        return [c["body"] for c in json.loads(out)["comments"]]
 
     def location(self, t):
         return t["url"]
@@ -298,6 +324,7 @@ def main():
             sp.add_argument("-s", "--status", choices=STATUSES)
     sp = sub.add_parser("show")
     sp.add_argument("id")
+    sp.add_argument("--json", action="store_true")
     sp = sub.add_parser("new")
     sp.add_argument("-p", "--phase", required=True)
     sp.add_argument("-t", "--title", required=True)
@@ -342,6 +369,10 @@ def main():
         print_table(ready(backend.all(), args.phase))
     elif args.cmd == "show":
         t = backend.get(args.id)
+        if args.json:
+            print(json.dumps({"id": t["id"], "status": t["status"],
+                              "notes": backend.notes(args.id)}))
+            return
         print(f"# [{t['id']}] {t['title']}")
         print(f"status: {t['status']}  wave: {t['wave']}  "
               f"depends: {', '.join(t['depends']) or '-'}  at: {backend.location(t)}\n")

@@ -87,7 +87,13 @@ handle worst. Every rule below follows from that.
 | `reviewer` | Checks one task diff against its contract. Read-only. | verdict, tracker notes |
 
 Keep handoffs small. Pass an agent a task ID, not a summary of the task. The
-agent reads the contract itself.
+agent reads the contract itself. Start every implementer and reviewer prompt
+with the task ID. A `SubagentStop` hook reads it there and won't let the agent
+finish until its status update, handoff note, or verdict is in the tracker.
+
+With the files tracker, `scripts/task.py` always reads and writes the main
+checkout's `docs/phases/`, even when it runs inside a worktree. The
+orchestrator commits tracker changes on the phase branch.
 
 ## Git
 
