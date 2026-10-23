@@ -107,3 +107,9 @@ _skip_if_exists:
   - "**/settings.gradle.kts"
   - "**/gradle/libs.versions.toml"
   - "**/project.yml"
+
+# Computed: Kotlin package directory for the Android skeleton.
+package_dir:
+  type: str
+  default: "{{ bundle_id | replace('.', '/') }}"
+  when: false
