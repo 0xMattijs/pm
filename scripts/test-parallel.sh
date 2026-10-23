@@ -51,7 +51,7 @@ work_on() {  # work_on <id> <file>: start a task, commit a file in its worktree
   local p; p=$($W start "$1"); $T set "$1" doing >/dev/null
   echo "$1" > "$p/$2"; git -C "$p" add -A; git -C "$p" commit -qm "feat: $1 [$1]"
 }
-finish() { $W merge "$1" >/dev/null; $T set "$1" done >/dev/null; }
+finish() { $W merge "$1" >/dev/null; $T set "$1" "done" >/dev/null; }
 
 work_on 01-01 a.txt; finish 01-01
 [ "$(ids ready)" = "01-02 01-03" ] || fail "01-02 and 01-03 should be ready, got: $(ids ready)"
@@ -78,7 +78,7 @@ contract src/signup | $T new -p 02 -t S -w 1 >/dev/null
 contract src/a/override | $T new -p 03 -t P -w 1 >/dev/null
 contract src/profile | $T new -p 03 -t Q -w 1 >/dev/null
 work_on 02-01 s.txt; work_on 03-01 p.txt; finish 02-01; finish 03-01
-$T set 03-02 done >/dev/null
+$T set 03-02 "done" >/dev/null
 set +e; $W base 04 >/dev/null 2>&1; rc=$?; set -e
 [ "$rc" = 3 ] || fail "phase 04 must wait while 02 and 03 are both unmerged (rc=$rc)"
 ok "a phase with two unmerged dependencies waits"
@@ -104,7 +104,7 @@ $W pull-tracker >/dev/null
 [ "$($T show 01-04 --json | grep -o '"status": "[a-z]*"')" = '"status": "done"' ] || fail "pull-tracker should restore 01-04 as done"
 ok "pull-tracker rebuilds task state from the wave branches"
 
-for i in 04-01 04-02 04-03; do $T set $i done >/dev/null; done
+for i in 04-01 04-02 04-03; do $T set "$i" "done" >/dev/null; done
 [ -z "$($T next-phases)" ] || fail "milestone 2 must not start without /replan: $($T next-phases)"
 python3 scripts/agent-precheck.py | grep -q 'milestone boundary before 05-teams' || fail "precheck should report the boundary"
 ok "chaining stops at the milestone boundary"
