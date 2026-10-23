@@ -63,9 +63,12 @@ scripts/               scaffold, apply-layer, sync, preflight, github-setup, sel
 
 ## Template source
 
-Copier records the template source in each project. By default it's this
-checkout (`~/projects/pm`). To make syncing work on any machine, push this
-repo and set `PM_TEMPLATE_SRC=gh:<owner>/pm` before bootstrapping.
+Copier records the template source in each project. `PM_TEMPLATE_SRC`
+selects it. It's set to `gh:0xMattijs/pm` in `~/.claude/settings.json`
+(`env`), so projects sync from GitHub on any machine. Push template changes
+before you bootstrap or sync; `apply-layer.sh` warns about unpushed commits.
+Without the variable, the local checkout (`~/projects/pm`) is used.
+`selftest.sh` always tests the local checkout.
 
 ## Guardrails in generated projects
 

@@ -8,6 +8,8 @@ set -euo pipefail
 PM_HOME="$(cd "$(dirname "$0")/.." && pwd)"
 layer="$1"; path="${2:-app}"
 work="$(mktemp -d)"; dest="$work/demo"
+# Test this checkout's committed templates, not whatever is pushed.
+export PM_TEMPLATE_SRC="$PM_HOME"
 trap 'rm -rf "$work"' EXIT
 export GIT_AUTHOR_NAME=selftest GIT_AUTHOR_EMAIL=selftest@example.com
 export GIT_COMMITTER_NAME=selftest GIT_COMMITTER_EMAIL=selftest@example.com

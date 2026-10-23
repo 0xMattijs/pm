@@ -18,6 +18,12 @@ else echo "set PM_TEMPLATE_SRC to the pm git repo (path or gh:owner/pm)" >&2; ex
 if [ -d "$SRC" ] && [ -n "$(git -C "$SRC" status --porcelain -- copier.yml templates)" ]; then
   echo "uncommitted template changes in $SRC; commit them first" >&2; exit 1
 fi
+# With a remote source, unpushed template commits in this checkout would be
+# silently ignored. Warn, don't fail: the remote is still a consistent version.
+if [ ! -d "$SRC" ] && git -C "$PM_HOME" rev-parse --git-dir >/dev/null 2>&1; then
+  ahead=$(git -C "$PM_HOME" rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)
+  [ "$ahead" = 0 ] || echo "WARN: $PM_HOME has $ahead unpushed commit(s); $SRC won't include them" >&2
+fi
 dest="$1"; layer="$2"; shift 2
 
 data=(-d "layer=$layer")
