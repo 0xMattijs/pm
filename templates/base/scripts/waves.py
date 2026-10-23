@@ -6,6 +6,7 @@
   waves.py merge <task-id>    merge a reviewed task into its wave branch
   waves.py ship <phase> <wave> --title T [--body-file F]
                               commit tracker state, push, open or update the PR
+  waves.py pull-tracker       rebuild task files from every copy (files tracker)
 
 Layout. Each wave has a branch wave/<NN>-<W> checked out in a wave worktree,
 .claude/worktrees/wave-<NN>-<W>. Each task has a branch task/<id> in
@@ -180,6 +181,50 @@ def cmd_ship(phase, wave, title, body_file):
     print(r.stdout.strip())
 
 
+RANK = {"todo": 0, "doing": 1, "review": 2, "blocked": 2, "done": 3}
+
+
+def cmd_pull_tracker():
+    """Files tracker: take the most advanced copy of each task file.
+
+    Task state is written to the main checkout and committed only when a wave
+    ships, so a fresh clone or a reset checkout can lag behind. Every copy on
+    main and on the wave branches (local and remote) is a candidate. The copy
+    with the highest status wins, and on a tie the longer one, which has more
+    log entries.
+    """
+    if tracker.tracker_kind() != "files":
+        print("github tracker: nothing to pull")
+        return
+    refs = [mainline(), "main"]
+    for ref in ("refs/heads/wave", "refs/remotes/origin/wave"):
+        refs += git("for-each-ref", "--format=%(refname:short)", ref, check=False).stdout.split()
+    best = {}
+
+    def offer(path, text):
+        m = re.search(r"^status:\s*(\w+)", text, re.M)
+        key = (RANK.get(m.group(1), 0) if m else -1, len(text))
+        if path not in best or key > best[path][0]:
+            best[path] = (key, text)
+
+    for ref in dict.fromkeys(refs):
+        if not has_ref(ref):
+            continue
+        for path in git("ls-tree", "-r", "--name-only", ref, "docs/phases", check=False).stdout.split():
+            if path.endswith(".md"):
+                offer(path, git("show", f"{ref}:{path}").stdout)
+    for f in tracker.PHASES.glob("*/*.md"):
+        offer(str(f.relative_to(ROOT)), f.read_text())
+    changed = 0
+    for path, (_, text) in best.items():
+        f = ROOT / path
+        if not f.exists() or f.read_text() != text:
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(text)
+            changed += 1
+    print(f"tracker: {len(best)} files, {changed} updated")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -191,6 +236,7 @@ def main():
     sp.add_argument("wave", type=int)
     sp.add_argument("--title", required=True)
     sp.add_argument("--body-file")
+    sub.add_parser("pull-tracker")
     args = p.parse_args()
     if args.cmd == "base":
         print(phase_base(args.phase))
@@ -200,6 +246,8 @@ def main():
         cmd_merge(args.id)
     elif args.cmd == "ship":
         cmd_ship(args.phase, args.wave, args.title, args.body_file)
+    elif args.cmd == "pull-tracker":
+        cmd_pull_tracker()
 
 
 if __name__ == "__main__":
