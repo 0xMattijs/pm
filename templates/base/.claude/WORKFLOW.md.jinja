@@ -56,13 +56,24 @@ handle worst. Every rule below follows from that.
    disjoint files, so they can run in parallel worktrees without merge
    conflicts. Shared changes such as schemas, interfaces, and config go in an
    earlier wave.
-6. **Gate every task.** `scripts/check.sh` passes, then `reviewer` checks the
-   diff against the contract. Two failed reviews mark the task `blocked` and
-   escalate it to a human.
-7. **State lives in the tracker.** Every agent ends its run by updating task
+6. **Gate every task, and watch it work.** `scripts/check.sh` passes, then a
+   `reviewer` checks the diff against the contract. The reviewer runs on a
+   different model from the implementer, and it reruns the contract's Verify
+   steps itself. An argument that the code works is never accepted when you
+   can observe it working. The reviewer tags each finding `actionable`,
+   `nit`, or `ambiguous`. Only actionable findings fail a task, and ambiguous
+   ones go to a human. The loop stops after three rounds, or sooner if it
+   stops converging.
+7. **Deterministic gates for risk.** `scripts/risk.py` fails closed. Diffs
+   that are too large, or that touch the paths and patterns in
+   `.claude/risk.txt` (auth, payments, migrations, CI, secrets, and so on),
+   need a human. Agents can make the rules stricter, never looser. Only a
+   human adds the `automerge` label, and automation merges only `risk:low`
+   PRs.
+8. **State lives in the tracker.** Every agent ends its run by updating task
    status and leaving a handoff note: what changed, what's left, and any
    surprises. The next agent starts from the tracker, not from your memory.
-8. **Protect the MVP.** Work outside `docs/MVP.md` goes into `ROADMAP.md`
+9. **Protect the MVP.** Work outside `docs/MVP.md` goes into `ROADMAP.md`
    under a later milestone. It doesn't go into the current phase.
 
 ## The loop
@@ -73,6 +84,7 @@ handle worst. Every rule below follows from that.
                  implementer (one per ready task, parallel worktrees)
                  -> scripts/check.sh -> reviewer -> merge into phase branch
                then verifies the phase exit criteria and opens a PR to main
+/babysit-pr    keeps the PR green: CI, flaky reruns, review comments, rebases
 /replan        after a milestone, or when a finding invalidates the plan
 ```
 
@@ -84,7 +96,7 @@ handle worst. Every rule below follows from that.
 | `planner` | Turns a roadmap phase into PHASE.md and task contracts. | `docs/phases/`, tracker |
 | `researcher` | Answers one focused question about the codebase or a library. Read-only. | nothing (returns findings) |
 | `implementer` | Delivers one task contract, test-first, in its own worktree. | code, tests, tracker notes |
-| `reviewer` | Checks one task diff against its contract. Read-only. | verdict, tracker notes |
+| `reviewer` | Reruns Verify, checks one task diff against its contract, and triages findings. Read-only. Different model from the implementer. | verdict, tracker notes |
 
 Keep handoffs small. Pass an agent a task ID, not a summary of the task. The
 agent reads the contract itself. Start every implementer and reviewer prompt

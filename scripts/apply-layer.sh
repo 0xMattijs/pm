@@ -13,6 +13,11 @@ if [ -n "${PM_TEMPLATE_SRC:-}" ]; then SRC="$PM_TEMPLATE_SRC"
 elif git -C "$PM_HOME" rev-parse --git-dir >/dev/null 2>&1; then SRC="$PM_HOME"
 elif git -C "$HOME/projects/pm" rev-parse --git-dir >/dev/null 2>&1; then SRC="$HOME/projects/pm"
 else echo "set PM_TEMPLATE_SRC to the pm git repo (path or gh:owner/pm)" >&2; exit 1; fi
+# A dirty local template makes Copier record a throwaway commit that later
+# updates can't find. Template changes must be committed first.
+if [ -d "$SRC" ] && [ -n "$(git -C "$SRC" status --porcelain -- copier.yml templates)" ]; then
+  echo "uncommitted template changes in $SRC; commit them first" >&2; exit 1
+fi
 dest="$1"; layer="$2"; shift 2
 
 data=(-d "layer=$layer")

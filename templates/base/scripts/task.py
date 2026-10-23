@@ -284,6 +284,8 @@ def lint(tasks):
             problems.append(f"{t['id']}: no '- Owns:' line under Scope")
         if "## Test plan" not in body:
             problems.append(f"{t['id']}: no test plan")
+        if not re.search(r"## Verify\n\s*\S", body):
+            problems.append(f"{t['id']}: no Verify steps (commands and expected output)")
         for d in t["depends"]:
             if d not in ids:
                 problems.append(f"{t['id']}: depends on unknown task {d}")

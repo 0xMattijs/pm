@@ -1,0 +1,67 @@
+# Deterministic risk gate for every PR. No LLM involved, and it fails closed.
+# - Labels the PR risk:low or risk:high and keeps one comment with the reasons.
+# - Auto-merge happens only when a human adds the `automerge` label AND risk
+#   is low. A high-risk PR is never merged by automation.
+name: Risk gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: assess
+        id: risk
+        run: |
+          range="origin/${{ github.base_ref }}...HEAD"
+          # The PR size limit is larger than the per-task limit: a PR may bundle a few tasks.
+          if python3 scripts/risk.py "$range" --max-lines 1200 --max-files 40 --json > risk.json; then :; fi
+          [ -s risk.json ] || echo '{"risk":"high","reasons":["risk gate failed to run"]}' > risk.json
+          echo "level=$(jq -r .risk risk.json)" >> "$GITHUB_OUTPUT"
+      - name: label and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          LEVEL: ${{ steps.risk.outputs.level }}
+        run: |
+          gh label create risk:low --color 0e8a16 --force >/dev/null
+          gh label create risk:high --color d93f0b --force >/dev/null
+          gh label create automerge --color 1d76db --force >/dev/null
+          other=$([ "$LEVEL" = low ] && echo high || echo low)
+          gh pr edit "$PR" --add-label "risk:$LEVEL" --remove-label "risk:$other" >/dev/null
+          {
+            echo "<!-- risk-gate -->"
+            echo "**Risk: $LEVEL** ($(jq -r '.lines // "?"' risk.json) lines, $(jq -r '.files // "?"' risk.json) files)"
+            jq -r '.reasons[] | "- " + .' risk.json
+            if [ "$LEVEL" = high ]; then
+              echo
+              echo "Next step: a human reviews the flagged areas. Split the PR if the size limit was hit. Automation won't merge this PR."
+            else
+              echo
+              echo "Add the \`automerge\` label to merge automatically once checks pass."
+            fi
+          } > body.md
+          id=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" \
+                 --jq '[.[] | select(.body | startswith("<!-- risk-gate -->"))][0].id // empty')
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$id" -F body=@body.md >/dev/null
+          else
+            gh pr comment "$PR" --body-file body.md >/dev/null
+          fi
+      - name: auto-merge (human label + low risk only)
+        if: steps.risk.outputs.level == 'low' && contains(github.event.pull_request.labels.*.name, 'automerge') && !github.event.pull_request.draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --auto --squash
+      - name: fail closed on high risk
+        if: steps.risk.outputs.level != 'low'
+        run: |
+          echo "::warning::risk:high, human review required"

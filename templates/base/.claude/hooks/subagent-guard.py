@@ -4,7 +4,7 @@ leaving its result in the tracker.
 
 - implementer: task status must be review or blocked, and the latest note
   must be its own handoff rather than an earlier review verdict.
-- reviewer: the latest note must be a REVIEW PASS or REVIEW FAIL verdict.
+- reviewer: the latest note must be a REVIEW PASS, FAIL, or ESCALATE verdict.
 
 The task ID comes from the agent's first prompt ("Implement task 01-03."),
 or from its final message as a fallback. If no ID is found, or the hook has
@@ -76,10 +76,10 @@ def main():
             block(f"Task {task_id} isn't handed off yet (status: {task['status']}). "
                   "Before stopping, run:\n" + "\n".join(missing))
     else:
-        if not re.match(r"REVIEW (PASS|FAIL)", last):
+        if not re.match(r"REVIEW (PASS|FAIL|ESCALATE)", last):
             block(f"Record your verdict for task {task_id} before stopping: "
-                  f'scripts/task.py note {task_id} "REVIEW PASS" or '
-                  f'"REVIEW FAIL: <numbered findings>".')
+                  f'scripts/task.py note {task_id} "REVIEW <PASS|FAIL|ESCALATE>: '
+                  '<numbered findings tagged [actionable|nit|ambiguous]>".')
 
 
 if __name__ == "__main__":

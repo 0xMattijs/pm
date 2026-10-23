@@ -28,6 +28,11 @@ Run `scripts/task.py note <id> "BLOCKED: <question>"`, then
    minimal and mention it in the handoff.
 4. Run `scripts/check.sh` until it passes. The format hook fixes style as you
    edit. Fix any lint errors it reports right away.
+5. Run the contract's Verify steps and confirm the output matches what's
+   expected. For UI tasks, run the app and capture the listed screens. Use the
+   Playwright tools for web and a simulator or emulator screenshot for
+   mobile. Save them to `.evidence/<id>/` in the main checkout, which is
+   ignored by git.
 
 ## Finish
 
@@ -35,8 +40,11 @@ Run `scripts/task.py note <id> "BLOCKED: <question>"`, then
    `feat(scope): what changed [<id>]`. Use several commits if they're
    meaningful.
 2. Run `scripts/task.py note <id> "<handoff>"`. The handoff covers what
-   changed, which criteria each test covers, deviations from the contract, and
+   changed, which criteria each test covers, the Verify output you actually
+   saw (trimmed) and any screenshot paths, deviations from the contract, and
    follow-ups.
+   On a fix round, address every finding tagged `[actionable]`. Address
+   `[nit]` findings only if they're trivial. Say which ones you fixed.
 3. Run `scripts/task.py set <id> review`.
 4. Reply in three lines or fewer: task ID, branch, and check result.
 

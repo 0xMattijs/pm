@@ -40,7 +40,12 @@ One or two sentences on the behavior delivered.
 - Not: tempting adjacent work that belongs elsewhere
 
 ## Test plan
-Which tests to write first and where they go. List manual checks if any.
+Which tests to write first and where they go.
+
+## Verify
+How a reviewer watches it work: exact commands and their expected output,
+such as `curl -s localhost:8000/health` returning `{"ok":true}`. For UI
+tasks, add the screens to capture and what each must show.
 
 ## Notes
 Relevant ADRs, library docs, and gotchas.
@@ -49,8 +54,12 @@ Relevant ADRs, library docs, and gotchas.
 ## Rules
 
 - Slice vertically, so each task ends in observable behavior.
-- Size each task for one implementer session and a diff under about 400
-  lines. Split anything bigger.
+- Size each task for one implementer session, with a diff under 400 changed
+  lines and 20 files. `scripts/risk.py` enforces those limits at review, so
+  split anything bigger.
+- Isolate sensitive work. Keep changes to auth, payments, migrations, CI,
+  and the other areas in `.claude/risk.txt` in their own tasks, so a
+  human reviews only those tasks and the rest can move fast.
 - Tasks in the same wave must own disjoint files. Put shared scaffolding,
   schemas, and interfaces in wave 1.
 - Prefer a few more waves over file conflicts inside a wave.

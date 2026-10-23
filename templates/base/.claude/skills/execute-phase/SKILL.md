@@ -27,17 +27,23 @@ Repeat until `scripts/task.py ready -p <NN>` is empty:
    `isolation: "worktree"` and the prompt `Implement task <id>.` Send all the
    spawns for a wave in one message so they run in parallel. Cap a wave at 4
    agents. Leave any extra tasks for the next round.
-2. **Gate each result** as it returns:
-   1. Spawn a `reviewer` with the task ID and the worktree branch range
-      (`phase/<NN-slug>..<branch>`).
-   2. On PASS, merge the branch into the phase branch with `git merge --no-ff`,
-      run `scripts/check.sh`, run `scripts/task.py set <id> done`, and remove
-      the worktree.
-   3. On FAIL, run `scripts/task.py set <id> doing`, then send the findings
+2. **Gate each result** as it returns. The agent that wrote the code never
+   reviews it.
+   1. Spawn a `reviewer` with the prompt
+      `Review task <id>, range phase/<NN-slug>..<branch>.`
+   2. On **PASS**, merge the branch into the phase branch with
+      `git merge --no-ff`, run `scripts/check.sh`, run
+      `scripts/task.py set <id> done`, and remove the worktree.
+   3. On **FAIL**, run `scripts/task.py set <id> doing`, then send the task
       back to an implementer in the same worktree with the prompt
-      `Fix review findings for task <id>.`
-      After a second FAIL, run `scripts/task.py set <id> blocked` and report
-      the task to the user.
+      `Fix review findings for task <id>.` It reads the findings from the
+      tracker. Allow up to three review rounds per task. Stop early if a round
+      repeats the previous round's actionable findings, because that loop
+      isn't converging. When you stop, run `scripts/task.py set <id> blocked`
+      and report the task to the user.
+   4. On **ESCALATE**, run `scripts/task.py set <id> blocked` and put the
+      ambiguous findings to the user in one AskUserQuestion call. Continue
+      with the rest of the wave while you wait.
 3. **Handle merge conflicts.** A conflict means the wave split was wrong.
    Resolve trivial conflicts yourself. For anything else, mark the later task
    `todo` with a note and let it rerun on the merged base.
@@ -48,11 +54,18 @@ healthy waves; keep going.
 
 ## Close the phase
 
-1. Check the exit criteria in `PHASE.md` end to end. Run the app or the
-   tests the criteria name, and use the `run` skill if it's available.
+1. Watch the exit criteria pass. Run the app and the commands that
+   `PHASE.md` names, using the `run` skill if it's available. For UI
+   criteria, capture screenshots into `.evidence/phase-<NN>/`. Don't
+   reason about whether the criteria hold; observe it.
 2. Spawn a `reviewer` on `main..phase/<NN-slug>` to check the whole phase
    for integration issues.
 3. Push and open a PR:
-   `gh pr create --base main --title "Phase <NN>: <goal>"`. Put the exit
-   criteria checklist and the task list in the body.
-4. Report the PR URL. If this phase completed a milestone, suggest `/replan`.
+   `gh pr create --base main --title "Phase <NN>: <goal>"`. The body
+   includes the exit criteria checklist, the task list, the observed Verify
+   output, and a "How to verify" section with commands and expected output,
+   so a human can watch it work in a minute.
+4. Run `/babysit-pr` until the PR is green and has no open actionable
+   comments. The risk gate labels the PR. Only a human adds `automerge`.
+5. Report the PR URL and its risk label. If this phase completed a milestone,
+   suggest `/replan`.
