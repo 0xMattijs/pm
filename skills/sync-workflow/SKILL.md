@@ -20,9 +20,16 @@ The scripts are in `<pm>/scripts/`. This skill's base directory is
    user both sides and ask. Commit the resolution, then rerun `sync.sh` to
    finish the remaining layers.
 5. **Verify.** Run `scripts/check.sh` and `scripts/task.py phases`.
-6. **Report.** Summarize what changed (`git diff main --stat`), grouped as
-   agents, skills, workflow rules, hooks, and CI. Then offer to push and open
-   a PR.
+6. **Report.** Start with the version change per layer, as `sync.sh`
+   printed it (for example `v0.2.0 -> v0.3.0`). Then summarize what changed,
+   using the release notes (`gh release view <tag> -R 0xMattijs/pm`) and
+   `git diff main --stat`, grouped as agents, skills, workflow rules, hooks,
+   and CI. Offer to push and open a PR titled
+   `chore: sync pm workflow to <tag>`.
+
+If `sync.sh` reports no change, the project is already on the newest
+release. Unreleased template changes on `main` reach projects only after
+`scripts/release.sh` in the pm repo, or with `PM_TEMPLATE_REF=HEAD`.
 
 To add a stack layer to an existing project, run
 `<pm>/scripts/scaffold.sh pre <layer> . <path>`, then

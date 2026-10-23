@@ -14,7 +14,16 @@ for f in "${files[@]}"; do
   [ -f "$f" ] || continue
   layer="${f#.copier-answers.}"; layer="${layer%.yml}"
   echo "== $layer"
-  uvx copier update --quiet --defaults --vcs-ref HEAD --conflict inline --answers-file "$f" </dev/null || exit 1
+  # Same version rule as apply-layer.sh: newest release tag for a remote
+  # source, HEAD for a local checkout, PM_TEMPLATE_REF to override.
+  src=$(sed -n 's/^_src_path: //p' "$f")
+  ref=()
+  if [ -n "${PM_TEMPLATE_REF:-}" ]; then ref=(--vcs-ref "$PM_TEMPLATE_REF")
+  elif [ -d "$src" ]; then ref=(--vcs-ref HEAD); fi
+  before=$(sed -n 's/^_commit: //p' "$f")
+  uvx copier update --quiet --defaults "${ref[@]}" --conflict inline --answers-file "$f" </dev/null || exit 1
+  after=$(sed -n 's/^_commit: //p' "$f")
+  echo "   $before -> $after"
   chmod +x scripts/*.sh scripts/*.py scripts/check.d/*.sh scripts/setup.d/*.sh .claude/hooks/*.sh .claude/hooks/format.d/*.sh 2>/dev/null || true
   conflicts=$(grep -rlE '^(<<<<<<<|>>>>>>>) ' --exclude-dir=.git --exclude-dir=node_modules . || true)
   if [ -n "$conflicts" ]; then
@@ -23,6 +32,6 @@ for f in "${files[@]}"; do
     exit 2
   fi
   git add -A
-  git diff --cached --quiet || git commit -qm "chore(sync): update $layer layer"
+  git diff --cached --quiet || git commit -qm "chore(sync): update $layer layer to $after"
 done
 git log --oneline -n "${#files[@]}"

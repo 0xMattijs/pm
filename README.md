@@ -61,14 +61,34 @@ scripts/               scaffold, apply-layer, sync, preflight, github-setup, sel
 .github/workflows/     template CI
 ```
 
-## Template source
+## Template source and versions
 
 Copier records the template source in each project. `PM_TEMPLATE_SRC`
 selects it. It's set to `gh:0xMattijs/pm` in `~/.claude/settings.json`
-(`env`), so projects sync from GitHub on any machine. Push template changes
-before you bootstrap or sync; `apply-layer.sh` warns about unpushed commits.
-Without the variable, the local checkout (`~/projects/pm`) is used.
-`selftest.sh` always tests the local checkout.
+(`env`), so projects sync from GitHub on any machine. Without the variable,
+the local checkout (`~/projects/pm`) is used.
+
+Projects bootstrap and sync from the **newest release tag**, not from `main`,
+so only released, CI-tested templates reach them. A local source renders
+`HEAD` instead, which is what `selftest.sh` uses. Set `PM_TEMPLATE_REF` to pin
+a tag, or to `HEAD` to try unreleased changes in one project.
+
+## Releasing
+
+```sh
+scripts/release.sh 0.3.0 --dry-run   # preview the changelog
+scripts/release.sh 0.3.0
+```
+
+The script refuses unless you're on a clean `main` that matches `origin` and
+template CI passed on that commit. It bumps the plugin version, prepends
+`CHANGELOG.md` from Conventional Commits since the last tag, tags `v0.3.0`,
+pushes, and creates a GitHub release. Then run `/pm:sync-workflow` in each
+project.
+
+Use semantic versions: patch for fixes, minor for new behavior, and major
+when a sync needs manual steps. To undo a bad release, revert the change and
+release a patch. Copier doesn't downgrade projects.
 
 ## Guardrails in generated projects
 

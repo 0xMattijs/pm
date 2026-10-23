@@ -18,11 +18,19 @@ else echo "set PM_TEMPLATE_SRC to the pm git repo (path or gh:owner/pm)" >&2; ex
 if [ -d "$SRC" ] && [ -n "$(git -C "$SRC" status --porcelain -- copier.yml templates)" ]; then
   echo "uncommitted template changes in $SRC; commit them first" >&2; exit 1
 fi
-# With a remote source, unpushed template commits in this checkout would be
-# silently ignored. Warn, don't fail: the remote is still a consistent version.
-if [ ! -d "$SRC" ] && git -C "$PM_HOME" rev-parse --git-dir >/dev/null 2>&1; then
-  ahead=$(git -C "$PM_HOME" rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)
-  [ "$ahead" = 0 ] || echo "WARN: $PM_HOME has $ahead unpushed commit(s); $SRC won't include them" >&2
+# Which template version to render. A remote source uses its newest release
+# tag (Copier's default when no ref is given). A local checkout renders HEAD,
+# for template development. PM_TEMPLATE_REF overrides both: a tag, or HEAD.
+ref=()
+if [ -n "${PM_TEMPLATE_REF:-}" ]; then ref=(--vcs-ref "$PM_TEMPLATE_REF")
+elif [ -d "$SRC" ]; then ref=(--vcs-ref HEAD)
+elif git -C "$PM_HOME" rev-parse --git-dir >/dev/null 2>&1; then
+  # Changes in this checkout after the newest release won't be included.
+  latest=$(git -C "$PM_HOME" describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+  if [ -n "$latest" ]; then
+    unreleased=$(git -C "$PM_HOME" rev-list --count "$latest..HEAD" -- copier.yml templates ignores 2>/dev/null || echo 0)
+    [ "$unreleased" = 0 ] || echo "note: using release $latest; $unreleased newer template commit(s) aren't released (scripts/release.sh)" >&2
+  fi
 fi
 dest="$1"; layer="$2"; shift 2
 
@@ -38,7 +46,7 @@ if [ -f "$dest/.copier-answers.$layer.yml" ]; then
 fi
 # Layers own disjoint files, so --overwrite only replaces leftovers from a
 # failed earlier run. stdin is closed so Copier can never block on a prompt.
-uvx copier copy --quiet --defaults --overwrite --vcs-ref HEAD "${data[@]}" "$SRC" "$dest" </dev/null
+uvx copier copy --quiet --defaults --overwrite "${ref[@]}" "${data[@]}" "$SRC" "$dest" </dev/null
 
 cd "$dest"
 chmod +x scripts/*.sh scripts/*.py scripts/check.d/*.sh scripts/setup.d/*.sh .claude/hooks/*.sh .claude/hooks/format.d/*.sh 2>/dev/null || true
