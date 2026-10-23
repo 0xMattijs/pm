@@ -1,6 +1,6 @@
 {
   "name": "pm",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Bootstrap projects with an interview-driven plan, layered stack templates, a collaborating subagent team, and full GitHub setup",
   "author": {
     "name": "Mattijs",

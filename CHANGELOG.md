@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.1 (2026-10-23)
+
+### Fixed
+
+- run stack CI on PRs for root stacks, generate Next route types before tsc
+
 ## v0.3.0 (2026-10-23)
 
 ### Added
