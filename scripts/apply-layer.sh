@@ -40,7 +40,7 @@ if [ -f "$ignores" ]; then
     printf '\n# pm:%s\n' "$layer" >> .gitignore
     while IFS= read -r line; do
       if [ "$path" = "." ] || [[ "$line" == !* ]]; then echo "$line"
-      else echo "/${path%/}/$line"; fi
+      else echo "/${path%/}/**/$line"; fi
     done < "$ignores" >> .gitignore
   }
 fi
