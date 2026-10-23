@@ -16,7 +16,9 @@ description: Revisit VISION, MVP, and ROADMAP after a milestone or a plan-breaki
    - When the MVP is done, mark it shipped in `MVP.md` and define the next
      milestone the same way: hypothesis, scope, acceptance criteria.
    - In `ROADMAP.md`, re-cut and reorder the upcoming phases, and move
-     dropped work to "Parked" with a reason.
+     dropped work to "Parked" with a reason. Keep the `Depends` column
+     accurate, and make phases independent wherever you can: phases with no
+     dependency on each other run at the same time.
 4. **Record decisions.** Write one ADR in `docs/adr/` for each direction
    change.
 5. **Commit and report.** Commit with `docs(plan): replan after <milestone>`,

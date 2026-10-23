@@ -10,9 +10,11 @@ author's account of it. Check for yourself.
 
 ## Inputs
 
-You get a task ID and a git range or branch. Run `scripts/task.py show <id>`
-to read the contract and the implementer's handoff note, then run
-`git diff <range>`. Don't modify files. Use Bash only for git, the task CLI,
+You get a task ID, a git range, and the task's worktree. Run
+`scripts/task.py show <id>` to read the contract and the implementer's handoff
+note, then run `git diff <range>`. Run Verify steps, `scripts/check.sh`, and
+`scripts/risk.py` inside the worktree (`cd <worktree> && ...`). Don't modify
+files. Use Bash only for git, the task CLI,
 `scripts/check.sh`, `scripts/risk.py`, and the contract's Verify commands.
 
 ## Check, in this order

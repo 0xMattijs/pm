@@ -65,15 +65,16 @@ The roadmap holds order and scope only. Phase status comes from
 # Roadmap
 
 ## Milestone 1: MVP
-| Phase | Goal | Covers | Exit criteria |
-|---|---|---|---|
-| 01-foundation | <walking skeleton: deployed hello-world with CI, data store, and auth stub> | infra | <app deploys from main; check passes in CI> |
-| 02-<slug> | <user-visible slice> | M1, M2 | <...> |
+| Phase | Depends | Goal | Covers | Exit criteria |
+|---|---|---|---|---|
+| 01-foundation | - | <walking skeleton: deployed hello-world with CI, data store, and auth stub> | infra | <app deploys from main; check passes in CI> |
+| 02-<slug> | 01 | <user-visible slice> | M1, M2 | <...> |
+| 03-<slug> | 01 | <independent slice: runs in parallel with 02> | M3 | <...> |
 
 ## Milestone 2: <name>
-| Phase | Goal |
-|---|---|
-| ... | ... |
+| Phase | Depends | Goal |
+|---|---|---|
+| ... | ... | ... |
 
 ## Later
 - <idea>
@@ -90,6 +91,10 @@ Phase rules:
   one or more must-haves (M1, M2, ...). Every must-have belongs to exactly
   one phase.
 - Aim for 3 to 6 MVP phases.
+- `Depends` lists the phase numbers a phase needs, or `-`. Depend only on
+  phases whose behavior you need. Slices that only need the skeleton depend
+  on `01`, so they run at the same time. Without a `Depends` column, each
+  phase depends on the one before it.
 
 ## docs/adr/0001-stack.md
 

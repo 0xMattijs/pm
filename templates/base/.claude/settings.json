@@ -7,6 +7,8 @@
       "Bash(scripts/task.py:*)",
       "Bash(python3 scripts/task.py:*)",
       "Bash(scripts/risk.py:*)",
+      "Bash(scripts/waves.py:*)",
+      "Bash(python3 scripts/waves.py:*)",
       "Bash(python3 scripts/risk.py:*)",
       "Bash(gh run view:*)",
       "Bash(gh run rerun:*)",

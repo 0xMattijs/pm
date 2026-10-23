@@ -108,6 +108,7 @@ _skip_if_exists:
   - "**/gradle/libs.versions.toml"
   - "**/gradle.properties"
   - "**/project.yml"
+  - ".claude/pm.json"
 
 # Computed: Kotlin package directory for the Android skeleton.
 package_dir:

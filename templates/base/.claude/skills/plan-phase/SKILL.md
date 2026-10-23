@@ -27,8 +27,9 @@ description: Plan the next (or a given) ROADMAP phase into PHASE.md and task con
    - no task is too big. Send anything that looks like more than one
      session back to the planner to split.
    Send lint problems and gaps back to the planner, at most twice.
-5. **Record it.** Commit `docs/phases/` with `docs(plan): plan phase <NN>`.
-   Don't write status into `ROADMAP.md`. `scripts/task.py phases` derives it.
+5. **Record it.** Don't commit the plan by hand. `scripts/waves.py ship`
+   carries `docs/phases/<NN-slug>/` into the phase's first wave PR. Don't
+   write status into `ROADMAP.md`. `scripts/task.py phases` derives it.
 6. **Report.** Show the user the wave table from
    `scripts/task.py list -p <NN>` and any open questions. Offer to run
    `/execute-phase`. With `--chained`, report the wave count and the

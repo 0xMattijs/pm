@@ -53,6 +53,15 @@ Relevant ADRs, library docs, and gotchas.
 
 ## Rules
 
+- **Plan for width.** Every task that waits on another is time when an agent
+  slot sits idle. Pin the shared contracts in wave 1: types, the database
+  schema, API shapes, and module boundaries, with stub implementations that
+  return fixed data. Later tasks then build against the stubs in parallel,
+  instead of waiting for the real implementations. Aim for 3 or more tasks
+  per wave after wave 1. Depend on a task only when you need its behavior,
+  not just its interface. `scripts/task.py lint` rejects a phase whose
+  dependency chain is longer than half its task count. If the work really is
+  sequential, write `Sequential: <reason>` in PHASE.md.
 - Slice vertically, so each task ends in observable behavior.
 - Size each task for one implementer session, with a diff under 400 changed
   lines and 20 files. `scripts/risk.py` enforces those limits at review, so
@@ -64,7 +73,9 @@ Relevant ADRs, library docs, and gotchas.
   schemas, and interfaces in wave 1.
 - Prefer a few more waves over file conflicts inside a wave.
 - Each wave ships as one PR. Keep a wave's total change under about 800
-  lines and 30 files, and split a wave that would be bigger.
+  lines and 30 files, and split a wave that would be bigger. Tasks start
+  when their own dependencies are done, not when the whole previous wave is,
+  so waves set PR grouping and order, not barriers.
 - Everything in the phase must trace back to `docs/MVP.md` or the roadmap.
   Don't add scope. Record ideas in ROADMAP.md under a later milestone instead.
 - Make an ambiguity a decision. Choose the simplest option, record it in
