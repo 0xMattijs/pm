@@ -27,7 +27,7 @@ Inside a generated project:
 | Command | Does |
 |---|---|
 | `/plan-phase` | `planner` turns the next roadmap phase into task contracts grouped in waves |
-| `/execute-phase` | Parallel `implementer`s in worktrees, a `reviewer` gate per task, a PR per phase |
+| `/execute-phase` | Parallel `implementer`s in worktrees, a `reviewer` gate per task, one stacked PR per wave. Chains into the next phase of the milestone until something needs you (`--once` for one phase) |
 | `/replan` | Revisit vision, MVP, and roadmap after a milestone |
 
 ## Layers

@@ -85,6 +85,9 @@ handle worst. Every rule below follows from that.
                  -> scripts/check.sh -> reviewer -> merge into wave branch
                -> one small PR per wave, stacked on the previous wave
                then verifies the phase exit criteria on the top of the stack
+               and chains into the next phase of the milestone; it stops on a
+               blocked task, failing exit criteria, a milestone boundary, or
+               more than 6 unmerged wave PRs (--once runs a single phase)
 /babysit-pr    keeps the PR green: CI, flaky reruns, review comments, rebases
 /replan        after a milestone, or when a finding invalidates the plan
 ```

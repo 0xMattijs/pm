@@ -1,6 +1,6 @@
 ---
 name: execute-phase
-description: Execute a planned phase wave by wave, with parallel implementer agents in worktrees, a review gate per task, and one small stacked PR per wave. Use when the user says "execute", "build phase 01", "continue", or "next wave".
+description: Execute planned phases wave by wave, with parallel implementer agents in worktrees, a review gate per task, and one small stacked PR per wave. Continues into the next phase of the milestone when a phase finishes cleanly. Use when the user says "execute", "build phase 01", "continue", or "next wave". Pass --once to stop after one phase.
 ---
 
 # Execute a phase
@@ -9,6 +9,9 @@ You are the orchestrator. Keep your own context small: pass task IDs to
 agents, read their short replies, and keep state in the tracker.
 
 ## Setup
+
+Arguments: an optional phase number, and `--once` to stop after that phase
+instead of chaining into the next one.
 
 1. Pick the phase: the first phase that `scripts/task.py phases` lists as
    `in-progress` or `planned`, unless the arguments name one. If it has no
@@ -80,7 +83,34 @@ Don't ask between healthy waves; keep going.
    whole for integration issues. Fix actionable findings as a last wave.
 3. Run `/babysit-pr` on each open wave PR, starting from the bottom of the
    stack, until each is green with no open actionable comments.
-4. Report the PR stack in merge order, with each PR's risk label, and say
-   what the human has to do. For example: "Merge #12, then #13. Both are
-   risk:low; add `automerge` to let them go." If this phase completed a
-   milestone, suggest `/replan`.
+4. Report the phase in a few lines: tasks done, the PR stack in merge order
+   with each PR's risk label, and what the human has to do. For example:
+   "Merge #12, then #13. Both are risk:low; add `automerge` to let them go."
+
+## Chain to the next phase
+
+Unless `--once` was passed, continue into the next phase when **all** of
+these hold:
+
+- Every task in the finished phase is `done`. None are blocked or escalated.
+- The exit criteria passed when you observed them.
+- The next phase in `ROADMAP.md` belongs to the same milestone.
+- No more than 6 wave PRs are open and unmerged
+  (`gh pr list --search "head:wave/" --state open`). A deeper stack is too
+  much unreviewed work in flight, so wait for the human to merge.
+
+If any check fails, stop and say which one. At a milestone boundary, suggest
+`/replan`. A replan needs the human, so never chain across a milestone.
+
+To chain:
+
+1. Cut the next phase's first wave branch, `wave/<NN+1>-1`, from the top of
+   the current stack (or from `main` if the whole stack has merged).
+2. Run `/plan-phase <NN+1> --chained` on that branch. The plan commit then
+   ships in the first wave PR, where the human sees its decisions.
+3. If planning stops with a question, stop the chain and pass the question to
+   the human. Otherwise, continue at the wave loop for the new phase.
+
+Report every phase transition in one line, for example
+`Phase 02 done (3 PRs, all risk:low) -> planning phase 03`, so the human can
+follow along and interrupt.

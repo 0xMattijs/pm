@@ -13,6 +13,11 @@ description: Plan the next (or a given) ROADMAP phase into PHASE.md and task con
    If two or more decisions would change the task breakdown, such as a data
    model choice, an auth approach, or a UX flow, ask the user about them in a
    single AskUserQuestion call. Skip this step when nothing is ambiguous.
+   With `--chained` (run by `/execute-phase` without the user present), don't
+   ask. Have the planner choose the simplest option that fits `VISION.md`
+   and the ADRs, and record each choice under "Decisions" in `PHASE.md`.
+   Stop and ask only if a decision would contradict `VISION.md` or
+   `MVP.md`, or would add a new external service or a new stack layer.
 3. **Delegate.** Spawn the `planner` agent with the phase number, the user's
    answers, and nothing else. It reads the documents itself.
 4. **Check the plan.** Run `scripts/task.py lint -p <NN>`. It catches missing
@@ -26,4 +31,5 @@ description: Plan the next (or a given) ROADMAP phase into PHASE.md and task con
    Don't write status into `ROADMAP.md`. `scripts/task.py phases` derives it.
 6. **Report.** Show the user the wave table from
    `scripts/task.py list -p <NN>` and any open questions. Offer to run
-   `/execute-phase`.
+   `/execute-phase`. With `--chained`, report the wave count and the
+   decisions in one or two lines, and return to the orchestrator.
