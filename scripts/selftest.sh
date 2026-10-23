@@ -33,9 +33,9 @@ end
 
 step "tracker"
 mkdir -p docs/phases/01-foundation
-printf '## Goal\nx\n\n## Acceptance criteria\n- [ ] y\n\n## Scope\n- Owns: %s/a\n\n## Test plan\nunit\n' "$path" \
+printf '## Goal\nx\n\n## Acceptance criteria\n- [ ] y\n\n## Scope\n- Owns: %s/a\n\n## Test plan\nunit\n\n## Verify\n`true` exits 0\n' "$path" \
   | scripts/task.py new -p 01 -t "First" -w 1 >/dev/null
-printf '## Goal\nx\n\n## Acceptance criteria\n- [ ] y\n\n## Scope\n- Owns: %s/b\n\n## Test plan\nunit\n' "$path" \
+printf '## Goal\nx\n\n## Acceptance criteria\n- [ ] y\n\n## Scope\n- Owns: %s/b\n\n## Test plan\nunit\n\n## Verify\n`true` exits 0\n' "$path" \
   | scripts/task.py new -p 01 -t "Second" -w 2 -d 01-01 >/dev/null
 scripts/task.py lint -p 01
 [ "$(scripts/task.py ready | cut -c1-5)" = "01-01" ]
@@ -54,8 +54,17 @@ out=$(printf '{"agent_type":"implementer","agent_transcript_path":"%s","stop_hoo
 echo "$out" | grep -q '"decision": "block"' || { echo "guard did not block an unfinished task" >&2; exit 1; }
 end
 
-step "sync (no-op)"
+step "risk gate"
 git add -A && git commit -qm "chore: bootstrap"
+echo "note" > NOTES.md && git add NOTES.md && git commit -qm "docs: note"
+scripts/risk.py HEAD~1..HEAD >/dev/null || { echo "small docs change should be low risk" >&2; exit 1; }
+mkdir -p src/auth && echo "x" > src/auth/login.txt && git add -A && git commit -qm "feat: auth"
+if scripts/risk.py HEAD~1..HEAD >/dev/null; then echo "auth change should be high risk" >&2; exit 1; fi
+if scripts/risk.py nonexistent..HEAD >/dev/null 2>&1; then echo "bad range must fail closed" >&2; exit 1; fi
+git reset -q --hard HEAD~2
+end
+
+step "sync (no-op)"
 "$PM_HOME/scripts/sync.sh" >/dev/null
 [ -z "$(git status --porcelain)" ]
 end
