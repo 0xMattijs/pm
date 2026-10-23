@@ -82,8 +82,9 @@ handle worst. Every rule below follows from that.
 /plan-phase    planner reads ROADMAP + MVP, writes PHASE.md and task contracts
 /execute-phase orchestrator runs waves:
                  implementer (one per ready task, parallel worktrees)
-                 -> scripts/check.sh -> reviewer -> merge into phase branch
-               then verifies the phase exit criteria and opens a PR to main
+                 -> scripts/check.sh -> reviewer -> merge into wave branch
+               -> one small PR per wave, stacked on the previous wave
+               then verifies the phase exit criteria on the top of the stack
 /babysit-pr    keeps the PR green: CI, flaky reruns, review comments, rebases
 /replan        after a milestone, or when a finding invalidates the plan
 ```
@@ -110,8 +111,13 @@ orchestrator commits tracker changes on the phase branch.
 ## Git
 
 - `main` is always releasable. Changes reach it only through a PR.
-- Each phase gets a branch named `phase/<NN-slug>`. Each task gets a branch
-  named `task/<id>`, which merges into the phase branch.
+- Each wave gets a branch named `wave/<NN>-<W>` and one PR. Task branches
+  merge into their wave branch after review. A wave PR targets `main`, or the
+  previous wave's branch while that one is still open, so PRs stack and agents
+  never wait on a merge.
+- Wave PRs merge with a merge commit, never a squash, so the stack and the
+  per-task commits survive. Keep a wave PR under 800 changed lines and 30
+  files.
 - Commits follow Conventional Commits and cite the task:
   `feat(auth): add signup form [01-03]`.
 - Run `scripts/check.sh` before every commit. CI runs the same scripts.

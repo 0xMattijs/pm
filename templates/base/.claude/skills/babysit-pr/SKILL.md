@@ -10,8 +10,9 @@ Use the PR from the arguments, or the PR for the current branch
 in one line.
 
 1. **Stay current.** If `gh pr view --json mergeStateStatus` reports
-   `BEHIND`, merge the base branch in, run `scripts/check.sh`, and push. Hand
-   real conflicts to the user. Don't guess at them.
+   `BEHIND`, merge the base branch in, run `scripts/check.sh`, and push. Never
+   rebase or force-push a wave branch, because the PR above it in the stack
+   builds on it. Hand real conflicts to the user. Don't guess at them.
 2. **Check CI.** Run `gh pr checks`.
    - Pending: do nothing this pass.
    - Failed: read the log with `gh run view <id> --log-failed`. If the failure

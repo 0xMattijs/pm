@@ -76,8 +76,23 @@ repo and set `PM_TEMPLATE_SRC=gh:<owner>/pm` before bootstrapping.
   can't stop until it has recorded `REVIEW PASS` or `REVIEW FAIL`. The guard
   blocks once per stop, so it can't trap an agent in a loop.
 - **Contract lint.** `scripts/task.py lint` rejects contracts that lack
-  criteria, scope, or a test plan, that have bad dependencies, or whose wave
-  has file conflicts.
+  criteria, scope, a test plan, or Verify steps, that have bad dependencies,
+  or whose wave has file conflicts.
+- **Review by observation.** The reviewer runs on a different model from the
+  implementer and reruns each contract's Verify commands. It tags findings
+  `actionable`, `nit`, or `ambiguous`. Only actionable findings fail a task,
+  ambiguous ones escalate to you, and the loop stops after three rounds.
+- **Risk gate.** `scripts/risk.py` uses no LLM and fails closed. It checks
+  size limits (400 lines per task, 800 per wave PR) and the sensitive paths
+  and content patterns in `.claude/risk.txt`. `risk-gate.yml` labels every
+  PR `risk:low` or `risk:high` with the reasons. Auto-merge needs your
+  `automerge` label and low risk.
+- **Small stacked PRs.** Each wave ships as one PR, stacked on the previous
+  wave while that one is open, so agents never wait on a merge.
+  `/babysit-pr` keeps each PR green.
+
+The review practices follow
+[PostHog's code review tips](https://posthog.com/newsletter/code-review-tips).
 
 ## Developing templates
 

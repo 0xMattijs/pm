@@ -22,8 +22,8 @@ jobs:
         id: risk
         run: |
           range="origin/${{ github.base_ref }}...HEAD"
-          # The PR size limit is larger than the per-task limit: a PR may bundle a few tasks.
-          if python3 scripts/risk.py "$range" --max-lines 1200 --max-files 40 --json > risk.json; then :; fi
+          # A wave PR bundles up to four tasks of under 400 lines each.
+          if python3 scripts/risk.py "$range" --max-lines 800 --max-files 30 --json > risk.json; then :; fi
           [ -s risk.json ] || echo '{"risk":"high","reasons":["risk gate failed to run"]}' > risk.json
           echo "level=$(jq -r .risk risk.json)" >> "$GITHUB_OUTPUT"
       - name: label and comment
@@ -60,7 +60,7 @@ jobs:
         if: steps.risk.outputs.level == 'low' && contains(github.event.pull_request.labels.*.name, 'automerge') && !github.event.pull_request.draft
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr merge "${{ github.event.pull_request.number }}" --auto --squash
+        run: gh pr merge "${{ github.event.pull_request.number }}" --auto --merge  # merge commit keeps stacked wave PRs intact
       - name: fail closed on high risk
         if: steps.risk.outputs.level != 'low'
         run: |

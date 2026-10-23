@@ -13,8 +13,11 @@ step "create repo ($visibility)"
 gh repo create "$slug" "--$visibility" --description "$desc" --source . --remote origin --push || exit 1
 repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
 
-step "merge settings: squash only, delete merged branches, auto-merge"
-gh repo edit "$repo" --enable-squash-merge --enable-merge-commit=false --enable-rebase-merge=false \
+# Wave PRs stack on each other, so they merge with merge commits; squash
+# stays available for one-off PRs. Merged branches are deleted, and GitHub then
+# retargets the next PR in the stack to main.
+step "merge settings: merge commits + squash, delete merged branches, auto-merge"
+gh repo edit "$repo" --enable-merge-commit --enable-squash-merge --enable-rebase-merge=false \
   --delete-branch-on-merge --enable-auto-merge >/dev/null || warn "could not update merge settings"
 
 step "protect main (ruleset)"

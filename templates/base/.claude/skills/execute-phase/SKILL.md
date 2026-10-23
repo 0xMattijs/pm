@@ -1,6 +1,6 @@
 ---
 name: execute-phase
-description: Execute a planned phase wave by wave, with parallel implementer agents in worktrees, a review gate per task, and a PR at the end. Use when the user says "execute", "build phase 01", "continue", or "next wave".
+description: Execute a planned phase wave by wave, with parallel implementer agents in worktrees, a review gate per task, and one small stacked PR per wave. Use when the user says "execute", "build phase 01", "continue", or "next wave".
 ---
 
 # Execute a phase
@@ -14,24 +14,28 @@ agents, read their short replies, and keep state in the tracker.
    `in-progress` or `planned`, unless the arguments name one. If it has no
    contracts, run `/plan-phase` first. If `scripts/task.py lint -p <NN>`
    fails, fix the contracts before you dispatch anything.
-2. Switch to the phase branch, creating it from `main` if needed:
-   `git switch phase/<NN-slug>` or `git switch -c phase/<NN-slug> main`.
-3. Resume safely. Run `scripts/task.py list -p <NN>`. Reset tasks stuck in
-   `doing` with no worktree to `todo`. Re-review tasks in `review`.
+2. Resume safely. Run `scripts/task.py list -p <NN>` and `gh pr list --search
+   "head:wave/<NN>-"`. Reset tasks stuck in `doing` with no worktree to
+   `todo`. Re-review tasks in `review`. Continue on the highest open wave
+   branch.
 
 ## Wave loop
 
 Repeat until `scripts/task.py ready -p <NN>` is empty:
 
-1. **Dispatch.** For each ready task, spawn an `implementer` with
+1. **Branch the wave.** Wave `<W>` gets the branch `wave/<NN>-<W>`. Cut it
+   from `main` if every earlier wave PR has merged. Otherwise cut it from the
+   previous wave's branch, so the PRs stack and you never wait on a human
+   merge.
+2. **Dispatch.** For each ready task, spawn an `implementer` with
    `isolation: "worktree"` and the prompt `Implement task <id>.` Send all the
    spawns for a wave in one message so they run in parallel. Cap a wave at 4
    agents. Leave any extra tasks for the next round.
-2. **Gate each result** as it returns. The agent that wrote the code never
+3. **Gate each result** as it returns. The agent that wrote the code never
    reviews it.
    1. Spawn a `reviewer` with the prompt
-      `Review task <id>, range phase/<NN-slug>..<branch>.`
-   2. On **PASS**, merge the branch into the phase branch with
+      `Review task <id>, range wave/<NN>-<W>..<branch>.`
+   2. On **PASS**, merge the task branch into the wave branch with
       `git merge --no-ff`, run `scripts/check.sh`, run
       `scripts/task.py set <id> done`, and remove the worktree.
    3. On **FAIL**, run `scripts/task.py set <id> doing`, then send the task
@@ -44,28 +48,39 @@ Repeat until `scripts/task.py ready -p <NN>` is empty:
    4. On **ESCALATE**, run `scripts/task.py set <id> blocked` and put the
       ambiguous findings to the user in one AskUserQuestion call. Continue
       with the rest of the wave while you wait.
-3. **Handle merge conflicts.** A conflict means the wave split was wrong.
+4. **Handle merge conflicts.** A conflict means the wave split was wrong.
    Resolve trivial conflicts yourself. For anything else, mark the later task
    `todo` with a note and let it rerun on the merged base.
-4. **Report the wave** in one line: done, blocked, and next.
+5. **Ship the wave** once every task in it is `done` or `blocked`, and at
+   least one is `done`:
+   1. Run `scripts/check.sh` and
+      `scripts/risk.py <base>..wave/<NN>-<W> --max-lines 800 --max-files 30`.
+   2. Commit the tracker changes (`docs/phases/`) on the wave branch, then push.
+   3. Open the PR:
+      `gh pr create --base <base> --head wave/<NN>-<W> --title "Phase <NN> wave <W>: <summary>"`.
+      Here `<base>` is `main` or the previous wave's branch. The body lists
+      the tasks (with `Closes #` lines for the github tracker), the observed
+      Verify output for each task, and a "How to verify" section with commands
+      and expected output, so a human can watch it work in a minute.
+   4. Don't wait for the merge. Move on to the next wave.
+6. **Report the wave** in one line: tasks done and blocked, the PR URL, and
+   the risk.
 
-Ask the user only about blocked tasks or contract changes. Don't ask between
-healthy waves; keep going.
+Ask the user only about blocked tasks, escalations, or contract changes.
+Don't ask between healthy waves; keep going.
 
 ## Close the phase
 
-1. Watch the exit criteria pass. Run the app and the commands that
-   `PHASE.md` names, using the `run` skill if it's available. For UI
-   criteria, capture screenshots into `.evidence/phase-<NN>/`. Don't
-   reason about whether the criteria hold; observe it.
-2. Spawn a `reviewer` on `main..phase/<NN-slug>` to check the whole phase
-   for integration issues.
-3. Push and open a PR:
-   `gh pr create --base main --title "Phase <NN>: <goal>"`. The body
-   includes the exit criteria checklist, the task list, the observed Verify
-   output, and a "How to verify" section with commands and expected output,
-   so a human can watch it work in a minute.
-4. Run `/babysit-pr` until the PR is green and has no open actionable
-   comments. The risk gate labels the PR. Only a human adds `automerge`.
-5. Report the PR URL and its risk label. If this phase completed a milestone,
-   suggest `/replan`.
+1. Watch the exit criteria pass on top of the last wave branch. Run the app
+   and the commands that `PHASE.md` names, using the `run` skill if it's
+   available. For UI criteria, capture screenshots into
+   `.evidence/phase-<NN>/`. Don't reason about whether the criteria hold;
+   observe it.
+2. Spawn a `reviewer` on `main..wave/<NN>-<last>` to check the phase as a
+   whole for integration issues. Fix actionable findings as a last wave.
+3. Run `/babysit-pr` on each open wave PR, starting from the bottom of the
+   stack, until each is green with no open actionable comments.
+4. Report the PR stack in merge order, with each PR's risk label, and say
+   what the human has to do. For example: "Merge #12, then #13. Both are
+   risk:low; add `automerge` to let them go." If this phase completed a
+   milestone, suggest `/replan`.

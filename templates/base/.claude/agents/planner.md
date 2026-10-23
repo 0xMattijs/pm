@@ -63,6 +63,8 @@ Relevant ADRs, library docs, and gotchas.
 - Tasks in the same wave must own disjoint files. Put shared scaffolding,
   schemas, and interfaces in wave 1.
 - Prefer a few more waves over file conflicts inside a wave.
+- Each wave ships as one PR. Keep a wave's total change under about 800
+  lines and 30 files, and split a wave that would be bigger.
 - Everything in the phase must trace back to `docs/MVP.md` or the roadmap.
   Don't add scope. Record ideas in ROADMAP.md under a later milestone instead.
 - Make an ambiguity a decision. Choose the simplest option, record it in
