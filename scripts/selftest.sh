@@ -29,8 +29,21 @@ case "$layer" in expo|flutter|ios-swift|android-kotlin) opts=(app_name=Demo bund
 cd "$dest"
 end
 
+step "ci workflow"
+# GitHub matches paths without a leading "./", so a root stack needs "**".
+glob="$path/**"; [ "$path" = "." ] && glob="**"
+grep -qF "paths: [\"$glob\"," ".github/workflows/ci-$layer.yml" \
+  || { echo "ci-$layer.yml paths filter should start with $glob" >&2; exit 1; }
+end
+
 step "stack check"
+if [ "$layer" = ts-next ]; then
+  # A clean checkout has no generated route types; the check must create them.
+  printf 'export type RootLayoutProps = LayoutProps<"/">;\n' > "$path/src/typegen-probe.ts"
+  rm -rf "$path/.next"
+fi
 scripts/check.sh "$layer"
+[ "$layer" = ts-next ] && rm "$path/src/typegen-probe.ts"
 end
 
 step "tracker"

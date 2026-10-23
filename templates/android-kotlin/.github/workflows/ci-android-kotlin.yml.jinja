@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths: ["{{ path }}/**", "scripts/check.d/android-kotlin.sh", ".github/workflows/ci-android-kotlin.yml"]
+    paths: ["{{ "**" if path == "." else path ~ "/**" }}", "scripts/check.d/android-kotlin.sh", ".github/workflows/ci-android-kotlin.yml"]
 jobs:
   check:
     runs-on: ubuntu-latest

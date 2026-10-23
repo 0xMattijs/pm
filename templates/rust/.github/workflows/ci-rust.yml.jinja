@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths: ["{{ path }}/**", "scripts/check.d/rust.sh", ".github/workflows/ci-rust.yml"]
+    paths: ["{{ "**" if path == "." else path ~ "/**" }}", "scripts/check.d/rust.sh", ".github/workflows/ci-rust.yml"]
 jobs:
   check:
     runs-on: ubuntu-latest

@@ -38,6 +38,7 @@ jobs:
         include:
           - { layer: python-uv, os: ubuntu-latest }
           - { layer: ts-next, os: ubuntu-latest }
+          - { layer: ts-next, os: ubuntu-latest, path: "." }
           - { layer: go, os: ubuntu-latest }
           - { layer: rust, os: ubuntu-latest }
           - { layer: expo, os: ubuntu-latest }
@@ -45,7 +46,7 @@ jobs:
           - { layer: android-kotlin, os: ubuntu-latest }
           - { layer: ios-swift, os: macos-15 }
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.layer }}
+    name: ${{ matrix.layer }}${{ matrix.path && format(' ({0})', matrix.path) || '' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -82,4 +83,4 @@ jobs:
       - if: matrix.layer == 'ios-swift'
         run: brew install xcodegen
       - name: selftest
-        run: scripts/selftest.sh ${{ matrix.layer }}
+        run: scripts/selftest.sh ${{ matrix.layer }} ${{ matrix.path || 'app' }}

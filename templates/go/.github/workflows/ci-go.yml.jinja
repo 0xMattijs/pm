@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths: ["{{ path }}/**", "scripts/check.d/go.sh", ".github/workflows/ci-go.yml"]
+    paths: ["{{ "**" if path == "." else path ~ "/**" }}", "scripts/check.d/go.sh", ".github/workflows/ci-go.yml"]
 jobs:
   check:
     runs-on: ubuntu-latest

@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths: ["{{ path }}/**", "scripts/check.d/flutter.sh", ".github/workflows/ci-flutter.yml"]
+    paths: ["{{ "**" if path == "." else path ~ "/**" }}", "scripts/check.d/flutter.sh", ".github/workflows/ci-flutter.yml"]
 jobs:
   check:
     runs-on: ubuntu-latest
