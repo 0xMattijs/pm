@@ -57,7 +57,8 @@ skills/                /pm:new-project, /pm:sync-workflow
 copier.yml             one template, layer chosen by the `layer` answer
 templates/<layer>/     files rendered into projects
 ignores/<layer>.txt    .gitignore rules each layer appends
-scripts/               apply-layer, sync, preflight, github-setup
+scripts/               scaffold, apply-layer, sync, preflight, github-setup, selftest
+.github/workflows/     template CI
 ```
 
 ## Template source
@@ -66,13 +67,29 @@ Copier records the template source in each project. By default it's this
 checkout (`~/projects/pm`). To make syncing work on any machine, push this
 repo and set `PM_TEMPLATE_SRC=gh:<owner>/pm` before bootstrapping.
 
+## Guardrails in generated projects
+
+- **Format hook (PostToolUse).** Formats and lints each edited file. Lint
+  errors that can't be fixed automatically go back to Claude in the same turn.
+- **Subagent guard (SubagentStop).** An `implementer` can't stop until its task
+  is in `review` or `blocked` and it has written a handoff note. A `reviewer`
+  can't stop until it has recorded `REVIEW PASS` or `REVIEW FAIL`. The guard
+  blocks once per stop, so it can't trap an agent in a loop.
+- **Contract lint.** `scripts/task.py lint` rejects contracts that lack
+  criteria, scope, or a test plan, that have bad dependencies, or whose wave
+  has file conflicts.
+
 ## Developing templates
 
-Commit before testing: Copier renders from git `HEAD`. Then try a change in
-a scratch project:
+Commit before testing: Copier renders from git `HEAD`. Then run the self-test
+for the layer you changed:
 
 ```sh
-d=$(mktemp -d) && git -C "$d" init -qb main
-scripts/apply-layer.sh "$d" base project_name=Test
-scripts/apply-layer.sh "$d" go path=cli
+scripts/selftest.sh go
 ```
+
+`selftest.sh` bootstraps a throwaway project the same way `/pm:new-project`
+does, using `scaffold.sh`, `apply-layer.sh`, and the stack's own scaffolder.
+It then runs the stack checks, the tracker, both hooks, and a no-op sync.
+`.github/workflows/templates.yml` runs it for every layer on each push and
+PR, and weekly to catch upstream scaffolder changes. iOS runs on macOS.
