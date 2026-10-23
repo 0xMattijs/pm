@@ -99,8 +99,9 @@ PY
   echo "## $tag ($(date +%Y-%m-%d))"
   echo
   printf '%s\n' "$notes"
-  [ -f CHANGELOG.md ] && sed '1{/^# Changelog$/d}' CHANGELOG.md | sed '1{/^$/d}'
-} > CHANGELOG.md.new && mv CHANGELOG.md.new CHANGELOG.md
+  if [ -f CHANGELOG.md ]; then sed '1{/^# Changelog$/d}' CHANGELOG.md | sed '1{/^$/d}'; fi
+} > CHANGELOG.md.new
+mv CHANGELOG.md.new CHANGELOG.md
 
 git add .claude-plugin/plugin.json .claude-plugin/marketplace.json CHANGELOG.md
 git commit -qm "chore(release): $tag"
