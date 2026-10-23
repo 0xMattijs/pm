@@ -114,6 +114,32 @@ release a patch. Copier doesn't downgrade projects.
   wave while that one is open, so agents never wait on a merge.
   `/babysit-pr` keeps each PR green.
 
+## Parallel execution
+
+How many agents can work at once depends on the plan's width, so the system
+pushes plans to be wide and dispatches as early as it safely can:
+
+- **Plans for width.** The planner pins interfaces and stubs in wave 1, so
+  later tasks build against them in parallel. `task.py lint` rejects a phase
+  whose dependency chain is longer than half its task count, unless
+  `PHASE.md` says `Sequential: <reason>`.
+- **Dependency dispatch.** `task.py ready --slots` lists every task whose own
+  dependencies and phase dependencies are done and whose files don't overlap
+  a running task, capped at the free agent slots. Waves group PRs; they don't
+  block.
+- **Concurrent phases.** `ROADMAP.md` has a `Depends` column, and
+  `task.py next-phases` lists every phase that can start, so independent
+  phases run at the same time. Chaining never crosses a milestone.
+- **Isolation.** `scripts/waves.py` gives each task its own worktree and
+  branch, merges reviewed tasks into their wave, merges earlier waves forward,
+  and ships stacked PRs. `waves.py pull-tracker` rebuilds task state in a
+  fresh checkout.
+- **Limits.** `.claude/pm.json` sets `max_agents` (default 4) and
+  `max_open_wave_prs` (default 8). More agents use your usage limits faster.
+
+`scripts/test-parallel.sh` tests all of this in a throwaway repo, and
+template CI runs it.
+
 ## Scheduled agent runs
 
 Agents keep working without an open session. The **local loop** is the main
