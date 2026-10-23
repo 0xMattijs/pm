@@ -46,6 +46,11 @@ case "$stage:$layer" in
   pre:expo)
     pnpm create expo-app@latest "$p" --template default --yes
     pnpm_lenient_builds "$p"
+    # Replace the example app with Expo's minimal blank app ("n" = delete the
+    # example instead of moving it to app-example/).
+    if grep -q '"reset-project"' "$p/package.json"; then
+      (cd "$p" && echo n | pnpm run --silent reset-project >/dev/null)
+    fi
     (cd "$p" && pnpm add -D @biomejs/biome && pnpm exec biome init \
       && npx expo install jest-expo jest @testing-library/react-native -- -D)
     node -e 'const f=process.argv[1]+"/app.json",fs=require("fs"),j=JSON.parse(fs.readFileSync(f));
@@ -66,11 +71,8 @@ case "$stage:$layer" in
     (cd "$p" && pnpm exec biome check --write . >/dev/null || true)
     ;;
   post:expo)
-    # Expo's starter renders text through <ThemedText>, a <Text> wrapper that
-    # Biome's raw-text rule can't see through. Teach it, keep the rule on.
+    # Generated native folders and Expo's cache aren't source; keep Biome out.
     node -e 'const f=process.argv[1]+"/biome.json",fs=require("fs"),j=JSON.parse(fs.readFileSync(f));
-             j.linter??={};j.linter.rules??={};j.linter.rules.correctness??={};
-             j.linter.rules.correctness.noReactNativeRawText={level:"error",options:{skip:["ThemedText"]}};
              j.files={...j.files,includes:["**","!**/ios","!**/android","!**/.expo"]};
              fs.writeFileSync(f,JSON.stringify(j,null,2)+"\n")' "$p"
     (cd "$p" && pnpm install --silent && pnpm exec biome check --write --unsafe . >/dev/null || true)
