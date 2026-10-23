@@ -41,7 +41,7 @@ fi
 uvx copier copy --quiet --defaults --overwrite --vcs-ref HEAD "${data[@]}" "$SRC" "$dest" </dev/null
 
 cd "$dest"
-chmod +x scripts/*.sh scripts/*.py scripts/check.d/*.sh .claude/hooks/*.sh .claude/hooks/format.d/*.sh 2>/dev/null || true
+chmod +x scripts/*.sh scripts/*.py scripts/check.d/*.sh scripts/setup.d/*.sh .claude/hooks/*.sh .claude/hooks/format.d/*.sh 2>/dev/null || true
 
 # Each layer contributes ignore rules. Non-root stacks get path-anchored rules.
 ignores="$PM_HOME/ignores/$layer.txt"

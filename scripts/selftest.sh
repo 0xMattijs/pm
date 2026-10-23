@@ -56,6 +56,13 @@ out=$(printf '{"agent_type":"implementer","agent_transcript_path":"%s","stop_hoo
 echo "$out" | grep -q '"decision": "block"' || { echo "guard did not block an unfinished task" >&2; exit 1; }
 end
 
+step "agent precheck"
+# Phase 01 has a ready task, so a scheduled run has work. gh has no remote
+# here, so PR and issue checks are skipped with a note.
+pre=$(python3 scripts/agent-precheck.py)
+echo "$pre" | grep -q '^run=true' || { echo "precheck should find ready work: $pre" >&2; exit 1; }
+end
+
 step "risk gate"
 git add -A && git commit -qm "chore: bootstrap"
 echo "note" > NOTES.md && git add NOTES.md && git commit -qm "docs: note"

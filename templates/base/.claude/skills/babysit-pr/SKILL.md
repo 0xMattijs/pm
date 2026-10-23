@@ -26,7 +26,8 @@ in one line.
    - **actionable:** fix it, push, and reply with the commit.
    - **nit:** fix it if it's trivial, otherwise reply with the reason. Then
      resolve it.
-   - **ambiguous:** don't act on it. Collect it for the user.
+   - **ambiguous:** don't act on it. Collect it for the user. In an
+     unattended run, open a `needs-human` issue for it.
    Run at most three fix rounds per PR. Stop early when a pass brings no new
    actionable comments.
 4. **Respect the gates.** Never merge, and never add the `automerge` label

@@ -111,6 +111,28 @@ With the files tracker, `scripts/task.py` always reads and writes the main
 checkout's `docs/phases/`, even when it runs inside a worktree. The
 orchestrator commits tracker changes on the phase branch.
 
+## Unattended runs
+
+`.github/workflows/agent-run.yml` runs this workflow on a schedule in GitHub
+Actions, with no human present. In those runs:
+
+- **Questions become issues.** Never wait for an answer. Open an issue
+  labelled `needs-human` that contains the question, the options, your
+  recommendation, and the task ID. Start every comment you write on it with
+  `<!-- agent -->`. Mark the task `blocked`, and continue with any other
+  work. The next run reads the human's answer, applies it, and closes the
+  issue.
+- **Never merge, and never touch `main` directly.** Agents push wave branches
+  and open PRs. Merging stays with the human and the risk gate.
+- **Leave a clean handoff.** Before the run ends, commit tracker changes on
+  the current wave branch and push every wave branch you touched. The next
+  run starts from the top of the open wave stack.
+- **Respect the time budget.** Don't start a new wave late in a run. A run
+  that times out mid-wave loses only uncommitted work, and resume logic
+  resets those tasks to `todo`.
+- **Stop conditions stay the same:** blocked tasks, failing exit criteria,
+  milestone boundaries, and the cap of 6 open wave PRs all stop chaining.
+
 ## Git
 
 - `main` is always releasable. Changes reach it only through a PR.

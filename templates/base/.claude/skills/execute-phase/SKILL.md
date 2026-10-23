@@ -70,7 +70,10 @@ Repeat until `scripts/task.py ready -p <NN>` is empty:
    the risk.
 
 Ask the user only about blocked tasks, escalations, or contract changes.
-Don't ask between healthy waves; keep going.
+Don't ask between healthy waves; keep going. In an unattended run (see
+"Unattended runs" in `.claude/WORKFLOW.md`), every question becomes a
+`needs-human` issue instead of an AskUserQuestion call, and the run carries on
+with other work.
 
 ## Close the phase
 

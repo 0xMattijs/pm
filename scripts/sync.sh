@@ -15,7 +15,7 @@ for f in "${files[@]}"; do
   layer="${f#.copier-answers.}"; layer="${layer%.yml}"
   echo "== $layer"
   uvx copier update --quiet --defaults --vcs-ref HEAD --conflict inline --answers-file "$f" </dev/null || exit 1
-  chmod +x scripts/*.sh scripts/*.py scripts/check.d/*.sh .claude/hooks/*.sh .claude/hooks/format.d/*.sh 2>/dev/null || true
+  chmod +x scripts/*.sh scripts/*.py scripts/check.d/*.sh scripts/setup.d/*.sh .claude/hooks/*.sh .claude/hooks/format.d/*.sh 2>/dev/null || true
   conflicts=$(grep -rlE '^(<<<<<<<|>>>>>>>) ' --exclude-dir=.git --exclude-dir=node_modules . || true)
   if [ -n "$conflicts" ]; then
     echo "$conflicts" >&2

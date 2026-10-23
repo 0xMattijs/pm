@@ -57,6 +57,14 @@ if ls .copier-answers.expo.yml >/dev/null 2>&1; then
   else echo "TODO: create an Expo access token, then: gh secret set EXPO_TOKEN -R $repo"; fi
 fi
 
+step "agent run labels and setup"
+gh label create needs-human --color d93f0b --description "An agent needs a decision" --force -R "$repo" >/dev/null
+echo "TODO for scheduled agent runs (.github/workflows/agent-run.yml):"
+echo "      1. Create a fine-grained token for $repo only (Contents, Pull requests, Issues, Actions: read/write),"
+echo "         then: gh secret set AGENT_GH_TOKEN -R $repo"
+echo "      2. gh secret set ANTHROPIC_API_KEY -R $repo   (or rely on CLAUDE_CODE_OAUTH_TOKEN, which shares plan limits)"
+echo "      3. To turn on the schedule: gh variable set AGENT_RUNS_ENABLED --body true -R $repo"
+
 if grep -q '^tracker: github' .copier-answers.base.yml 2>/dev/null; then
   step "tracker labels"
   python3 scripts/task.py init

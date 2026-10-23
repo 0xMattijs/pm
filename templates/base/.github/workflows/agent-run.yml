@@ -1,0 +1,107 @@
+# Scheduled, unattended agent runs: babysit open wave PRs, then continue
+# /execute-phase (with phase chaining) where the last run stopped.
+#
+# Setup (once per repo):
+#   1. Secret AGENT_GH_TOKEN: a fine-grained token for this repo only, with
+#      Contents, Pull requests, and Issues read/write, and Actions read/write.
+#      Pushes made with it trigger CI and the risk gate. GITHUB_TOKEN pushes
+#      don't.
+#   2. Secret ANTHROPIC_API_KEY (API billing, no plan limits) or
+#      CLAUDE_CODE_OAUTH_TOKEN (shares your subscription's limits).
+#   3. Variable AGENT_RUNS_ENABLED=true to turn on the schedule. Manual runs
+#      (Actions > Agent run > Run workflow) work without it.
+name: Agent run
+on:
+  schedule:
+    - cron: "17 */3 * * *"  # every 3 hours; edit to taste
+  workflow_dispatch:
+    inputs:
+      task:
+        description: What to do
+        type: choice
+        options: [auto, execute, babysit]
+        default: auto
+      phase:
+        description: Phase number (empty = next)
+        type: string
+        required: false
+      once:
+        description: Stop after one phase
+        type: boolean
+        default: false
+
+concurrency:
+  group: agent-run
+  cancel-in-progress: false  # never two agent runs at once, never kill one mid-wave
+
+permissions:
+  contents: read  # all writes go through AGENT_GH_TOKEN
+
+jobs:
+  run:
+    if: github.event_name == 'workflow_dispatch' || vars.AGENT_RUNS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+    steps:
+      - name: Check secrets
+        env:
+          HAS_GH: ${{ secrets.AGENT_GH_TOKEN != '' }}
+          HAS_MODEL: ${{ secrets.ANTHROPIC_API_KEY != '' || secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: |
+          [ "$HAS_GH" = true ] || { echo "::error::Add the AGENT_GH_TOKEN secret (see the header of agent-run.yml)."; exit 1; }
+          [ "$HAS_MODEL" = true ] || { echo "::error::Add ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN."; exit 1; }
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AGENT_GH_TOKEN }}
+
+      - name: Check out the top of the wave stack
+        run: |
+          top=$(gh pr list --state open --search "head:wave/" --json headRefName -q '.[].headRefName' | sort -V | tail -1)
+          if [ -n "$top" ]; then git switch "$top"; fi
+          echo "on branch: $(git branch --show-current)"
+          git config user.name "pm-agent"
+          git config user.email "pm-agent@users.noreply.github.com"
+
+      - name: Precheck (no LLM)
+        id: pre
+        run: |
+          python3 scripts/agent-precheck.py > precheck.txt
+          cat precheck.txt >> "$GITHUB_OUTPUT"
+          { echo "### Agent run precheck"; sed 's/^/- /' precheck.txt; } >> "$GITHUB_STEP_SUMMARY"
+          rm precheck.txt
+
+      - name: Install toolchains
+        if: steps.pre.outputs.run == 'true' || github.event_name == 'workflow_dispatch'
+        run: bash scripts/setup.sh
+
+      - name: Agent
+        if: steps.pre.outputs.run == 'true' || github.event_name == 'workflow_dispatch'
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.AGENT_GH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Unattended agent run (GitHub Actions). Follow .claude/WORKFLOW.md, section
+            "Unattended runs". Nobody can answer questions during this run.
+
+            Precheck: ${{ steps.pre.outputs.reason }}
+            Mode: ${{ inputs.task || 'auto' }}
+
+            1. Read open issues labelled needs-human. Apply each human answer, then
+               close the issue with a comment that starts with <!-- agent -->.
+            2. Unless the mode is execute: run /babysit-pr once on each open wave PR,
+               bottom of the stack first.
+            3. Unless the mode is babysit: run /execute-phase ${{ inputs.phase }} ${{ inputs.once && '--once' || '' }}
+            4. After 4.5 hours, start no new waves. Finish the current gate, commit the
+               tracker changes, and push every wave branch you touched.
+            5. End with a summary of at most 10 lines: PRs opened or updated, tasks done,
+               blocked items, and needs-human issues opened.
+          claude_args: |
+            --max-turns 1500
+            --allowedTools Bash,Read,Edit,Write,MultiEdit,Grep,Glob,Agent,Skill,TodoWrite,WebFetch,WebSearch
+            --disallowedTools "Bash(gh pr merge:*)" "Bash(git push --force:*)" "Bash(git push -f:*)" "Bash(git push origin main:*)" AskUserQuestion
