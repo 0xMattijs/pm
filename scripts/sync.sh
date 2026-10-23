@@ -16,9 +16,9 @@ for f in "${files[@]}"; do
   echo "== $layer"
   uvx copier update --quiet --defaults --vcs-ref HEAD --conflict inline --answers-file "$f" </dev/null || exit 1
   chmod +x scripts/*.sh scripts/*.py scripts/check.d/*.sh .claude/hooks/*.sh .claude/hooks/format.d/*.sh 2>/dev/null || true
-  if git grep -lE '^(<<<<<<<|>>>>>>>) ' -- . ':!*.lock' >/dev/null 2>&1 || \
-     grep -rlE '^(<<<<<<<|>>>>>>>) ' --exclude-dir=.git --exclude-dir=node_modules . >/dev/null 2>&1; then
-    grep -rlE '^(<<<<<<<|>>>>>>>) ' --exclude-dir=.git --exclude-dir=node_modules . >&2
+  conflicts=$(grep -rlE '^(<<<<<<<|>>>>>>>) ' --exclude-dir=.git --exclude-dir=node_modules . || true)
+  if [ -n "$conflicts" ]; then
+    echo "$conflicts" >&2
     echo "CONFLICTS in layer $layer: resolve the files above, commit, then rerun sync.sh" >&2
     exit 2
   fi
