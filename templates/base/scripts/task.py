@@ -11,7 +11,12 @@ same commands:
   task.py phases                      list phases with status derived from tasks
   task.py lint [-p 01]                check contracts: criteria, scope, wave conflicts
   task.py list [-p 01] [-s todo]      list tasks
-  task.py ready [-p 01]               todo tasks whose dependencies are done
+  task.py ready [-p 01] [--slots]     startable tasks: dependencies done, phase
+                                      dependencies done, no file overlap with
+                                      running tasks (--slots: cap at free agents)
+  task.py next-phases                 unplanned phases of the current milestone
+                                      whose phase dependencies are done
+  task.py config max_agents           read .claude/pm.json
   task.py show 01-03 [--json]         print a task contract (json: status and notes)
   task.py new -p 01 -t "Title" [-w 1] [-d 01-01,01-02] < body.md
   task.py set 01-03 doing             change status
@@ -231,18 +236,104 @@ class GithubBackend:
 
 # --- commands ----------------------------------------------------------------
 
-def ready(tasks, phase=None):
-    status = {t["id"]: t["status"] for t in tasks}
-    out = []
+def config(key):
+    """Project settings in .claude/pm.json, with defaults."""
+    defaults = {"max_agents": 4, "max_open_wave_prs": 8}
+    f = ROOT / ".claude" / "pm.json"
+    try:
+        data = json.loads(f.read_text()) if f.exists() else {}
+    except ValueError:
+        data = {}
+    return {**defaults, **data}.get(key)
+
+
+def roadmap():
+    """ROADMAP.md phases in order: [{milestone, slug, phase, depends}].
+
+    A table with a "Depends" column lists phase numbers there ("-" or empty
+    means none). Without that column, each phase depends on the one before it.
+    """
+    f = PHASES.parent.parent / "ROADMAP.md"
+    rows, milestone, dep_col = [], None, None
+    for line in f.read_text().splitlines() if f.exists() else []:
+        if line.startswith("## "):
+            milestone, dep_col = line[3:].strip(), None
+            continue
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if cells[0].lower() == "phase":
+            dep_col = next((i for i, c in enumerate(cells) if c.lower().startswith("depend")), None)
+            continue
+        m = re.match(r"(\d{2})-[a-z0-9-]+$", cells[0])
+        if not (m and milestone):
+            continue
+        if dep_col is None:
+            deps = [rows[-1]["phase"]] if rows else []
+        else:
+            deps = re.findall(r"\b(\d{2})\b", cells[dep_col]) if dep_col < len(cells) else []
+        rows.append({"milestone": milestone, "slug": cells[0], "phase": m.group(1), "depends": deps})
+    return rows
+
+
+def phase_states(tasks):
+    by_phase = {}
     for t in tasks:
+        by_phase.setdefault(t["phase"], []).append(t)
+    return {p: phase_status(ts) for p, ts in by_phase.items()}
+
+
+def ready(tasks, phase=None, limit=None):
+    """Tasks that can start now, across phases unless one is given.
+
+    A task is startable when its own dependencies are done, its phase's
+    dependency phases are done, and none of the files it owns overlaps with a
+    running task or with a task picked earlier in this call. Waves set the PR
+    grouping and the preferred order, but they're not barriers.
+    """
+    status = {t["id"]: t["status"] for t in tasks}
+    pstate = phase_states(tasks)
+    pdeps = {r["phase"]: r["depends"] for r in roadmap()}
+    taken = [p for t in tasks if t["status"] in ("doing", "review") for p in owned_paths(t["body"])]
+    out = []
+    for t in sorted(tasks, key=lambda t: (int(t["wave"]), t["phase"], t["id"])):
         if t["status"] != "todo" or (phase and t["phase"] != phase):
             continue
-        if all(status.get(d) == "done" for d in t["depends"]):
-            out.append(t)
-    if not out:
-        return []
-    first_wave = min(int(t["wave"]) for t in out)
-    return [t for t in out if int(t["wave"]) == first_wave]
+        if not all(status.get(d) == "done" for d in t["depends"]):
+            continue
+        if not all(pstate.get(d) == "done" for d in pdeps.get(t["phase"], [])):
+            continue
+        owns = owned_paths(t["body"])
+        if any(overlaps(a, b) for a in owns for b in taken):
+            continue
+        out.append(t)
+        taken += owns
+        if limit is not None and len(out) >= limit:
+            break
+    return out
+
+
+def next_phases(tasks):
+    """Unplanned phases in the current milestone whose dependencies are done."""
+    rows = roadmap()
+    pstate = phase_states(tasks)
+    current = next((r["milestone"] for r in rows if pstate.get(r["phase"]) != "done"), None)
+    return [r for r in rows
+            if r["milestone"] == current and r["phase"] not in pstate
+            and all(pstate.get(d) == "done" for d in r["depends"])]
+
+
+def chain_depth(tasks):
+    """Length of the longest dependency chain among these tasks."""
+    by_id = {t["id"]: t for t in tasks}
+    memo = {}
+
+    def depth(i):
+        if i not in memo:
+            memo[i] = 1 + max((depth(d) for d in by_id[i]["depends"] if d in by_id), default=0)
+        return memo[i]
+
+    return max((depth(i) for i in by_id), default=0)
 
 
 def phase_status(tasks):
@@ -293,6 +384,16 @@ def lint(tasks):
         for d in t["depends"]:
             if d in by_id and int(by_id[d]["wave"]) >= int(t["wave"]):
                 problems.append(f"{t['id']}: depends on {d} in the same or a later wave")
+    for ph in sorted({t["phase"] for t in tasks}):
+        mine = [t for t in tasks if t["phase"] == ph]
+        n, d = len(mine), chain_depth(mine)
+        plan = next(iter(sorted(PHASES.glob(f"{ph}-*/PHASE.md"))), None)
+        sequential = plan is not None and "Sequential:" in plan.read_text()
+        if n >= 4 and d > n / 2 and not sequential:
+            problems.append(
+                f"phase {ph}: {n} tasks in a dependency chain of {d}, so at most "
+                f"{max(1, n - d + 1)} run at once. Pin interfaces and stubs in wave 1 so "
+                "more tasks run in parallel, or add 'Sequential: <reason>' to PHASE.md")
     open_tasks = [t for t in tasks if t["status"] != "done"]
     for i, a in enumerate(open_tasks):
         for b in open_tasks[i + 1:]:
@@ -324,6 +425,12 @@ def main():
         sp.add_argument("-p", "--phase")
         if name == "list":
             sp.add_argument("-s", "--status", choices=STATUSES)
+        else:
+            sp.add_argument("--slots", action="store_true",
+                            help="cap at max_agents minus running tasks")
+    sub.add_parser("next-phases")
+    sp = sub.add_parser("config")
+    sp.add_argument("key")
     sp = sub.add_parser("show")
     sp.add_argument("id")
     sp.add_argument("--json", action="store_true")
@@ -368,7 +475,17 @@ def main():
                  and (not args.status or t["status"] == args.status)]
         print_table(tasks)
     elif args.cmd == "ready":
-        print_table(ready(backend.all(), args.phase))
+        tasks = backend.all()
+        limit = None
+        if args.slots:
+            running = sum(t["status"] == "doing" for t in tasks)
+            limit = max(0, config("max_agents") - running)
+        print_table(ready(tasks, args.phase, limit))
+    elif args.cmd == "next-phases":
+        for r in next_phases(backend.all()):
+            print(f"{r['slug']:<32} depends: {','.join(r['depends']) or '-'}")
+    elif args.cmd == "config":
+        print(config(args.key))
     elif args.cmd == "show":
         t = backend.get(args.id)
         if args.json:
