@@ -1,0 +1,22 @@
+name: CI (web)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["{{ path }}/**", "scripts/check.d/ts-next.sh", ".github/workflows/ci-ts-next.yml"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: "{{ path }}/package.json"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "{{ node_version }}"
+          cache: pnpm
+          cache-dependency-path: "{{ path }}/pnpm-lock.yaml"
+      - run: bash scripts/check.d/ts-next.sh
+      - run: pnpm build
+        working-directory: "{{ path }}"

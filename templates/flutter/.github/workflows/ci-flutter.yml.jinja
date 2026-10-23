@@ -1,0 +1,16 @@
+name: CI (flutter)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["{{ path }}/**", "scripts/check.d/flutter.sh", ".github/workflows/ci-flutter.yml"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: bash scripts/check.d/flutter.sh

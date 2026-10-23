@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)/{{ path }}"
+if [ "$(uname)" != "Darwin" ]; then
+  echo "skipped: iOS checks need macOS (CI runs them)"; exit 0
+fi
+xcodegen generate --quiet
+udid=$(xcrun simctl list devices available -j \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r,ds in d.items() if "iOS" in r for x in ds if "iPhone" in x["name"]))')
+xcodebuild test -quiet -project {{ app_name }}.xcodeproj -scheme {{ app_name }} \
+  -destination "id=$udid" CODE_SIGNING_ALLOWED=NO

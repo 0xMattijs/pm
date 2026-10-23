@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)/{{ path }}"
+flutter pub get
+dart format --output=none --set-exit-if-changed .
+flutter analyze
+flutter test

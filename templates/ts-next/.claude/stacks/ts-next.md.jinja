@@ -1,0 +1,12 @@
+# Stack: TypeScript / Next.js in `{{ path }}/`
+
+- Node {{ node_version }}, pnpm only (`pnpm add`, `pnpm exec`). Never use npm or yarn.
+- Next.js App Router. Server Components by default. Add `"use client"` only
+  for interactivity. Server Actions or route handlers for mutations.
+- Lint and format: Biome (the hook runs it on every edit). Types: `tsc --noEmit`, strict.
+  Tests: Vitest, colocated as `*.test.ts(x)`.
+- Check: `scripts/check.sh ts-next`.
+{%- if deploy_vercel %}
+- Deploys: Vercel. Every PR gets a preview URL, and `main` deploys to
+  production. Manage env vars with `vercel env`. Never commit `.env*`.
+{%- endif %}

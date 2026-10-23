@@ -1,0 +1,8 @@
+# Stack: Go in `{{ path }}/`
+
+- Standard layout: `cmd/<binary>/main.go`, private code in `internal/`.
+  Prefer the standard library. Add a dependency only with a reason in the PR.
+- Errors: wrap with `fmt.Errorf("...: %w", err)`. No panics in library code.
+- Tests: table-driven, `_test.go` next to the code, `go test ./...`.
+- Format: gofmt (the hook runs it on every edit). Lint: `go vet`, plus golangci-lint in CI.
+- Check: `scripts/check.sh go`.

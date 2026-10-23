@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Format and lint TS/JS/CSS/JSON files under {{ path }}/ with Biome.
+f="$1"; dir="$(git rev-parse --show-toplevel)/{{ path }}"
+case "$f" in "$dir"/node_modules/*|"$dir"/.next/*) exit 0 ;; esac
+case "$f" in "$dir"/*.ts|"$dir"/*.tsx|"$dir"/*.js|"$dir"/*.jsx|"$dir"/*.json|"$dir"/*.css) ;; *) exit 0 ;; esac
+out=$(pnpm --dir "$dir" exec biome check --write --no-errors-on-unmatched "$f" 2>&1) || { echo "$out" >&2; exit 2; }
+exit 0

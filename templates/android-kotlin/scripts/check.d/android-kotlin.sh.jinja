@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)/{{ path }}"
+if [ -z "${ANDROID_HOME:-}" ] && [ ! -f local.properties ]; then
+  echo "skipped: Android SDK not found (set ANDROID_HOME; CI runs these checks)"; exit 0
+fi
+gradle=./gradlew; [ -x "$gradle" ] || gradle=gradle
+$gradle --quiet lint testDebugUnitTest

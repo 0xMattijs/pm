@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Format and lint Python files under {{ path }}/.
+f="$1"; dir="$(git rev-parse --show-toplevel)/{{ path }}"
+case "$f" in "$dir"/*.py) ;; *) exit 0 ;; esac
+uv run --project "$dir" ruff format -q "$f" >/dev/null 2>&1
+out=$(uv run --project "$dir" ruff check --fix -q "$f" 2>&1) || { echo "$out" >&2; exit 2; }
+exit 0

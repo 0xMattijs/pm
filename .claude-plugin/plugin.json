@@ -1,0 +1,9 @@
+{
+  "name": "pm",
+  "version": "0.1.0",
+  "description": "Bootstrap projects with an interview-driven plan, layered stack templates, a collaborating subagent team, and full GitHub setup",
+  "author": {
+    "name": "Mattijs",
+    "email": "mattijs@qlibr.com"
+  }
+}

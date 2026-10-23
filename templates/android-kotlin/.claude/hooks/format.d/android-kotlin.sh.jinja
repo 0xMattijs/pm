@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+f="$1"; dir="$(git rev-parse --show-toplevel)/{{ path }}"
+case "$f" in "$dir"/*.kt|"$dir"/*.kts) ;; *) exit 0 ;; esac
+command -v ktlint >/dev/null || exit 0
+ktlint --format "$f" >/dev/null 2>&1
+out=$(ktlint "$f" 2>&1) || { echo "$out" >&2; exit 2; }
+exit 0

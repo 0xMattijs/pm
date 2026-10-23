@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)/{{ path }}"
+pnpm install --frozen-lockfile --silent
+pnpm exec biome ci .
+pnpm exec tsc --noEmit
+pnpm run --if-present test

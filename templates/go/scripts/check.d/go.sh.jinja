@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)/{{ path }}"
+unformatted=$(gofmt -l .)
+[ -z "$unformatted" ] || { echo "gofmt needed: $unformatted" >&2; exit 1; }
+go vet ./...
+if command -v golangci-lint >/dev/null; then golangci-lint run ./...; fi
+go test ./...

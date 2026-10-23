@@ -1,0 +1,7 @@
+# Stack: Rust in `{{ path }}/`
+
+- Cargo workspace, edition 2024. Errors: `thiserror` in libraries, `anyhow` in binaries.
+- No `unwrap()` or `expect()` outside tests and `main` setup.
+- Tests: unit tests in `#[cfg(test)] mod tests`, integration tests in `tests/`.
+- Format: rustfmt (the hook runs it on every edit). Lint: clippy with `-D warnings`.
+- Check: `scripts/check.sh rust`.

@@ -1,0 +1,13 @@
+name: CI (ios)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["{{ path }}/**", "scripts/check.d/ios-swift.sh", ".github/workflows/ci-ios-swift.yml"]
+jobs:
+  check:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - run: brew install xcodegen
+      - run: bash scripts/check.d/ios-swift.sh

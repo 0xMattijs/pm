@@ -1,0 +1,18 @@
+name: CI (rust)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["{{ path }}/**", "scripts/check.d/rust.sh", ".github/workflows/ci-rust.yml"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "{{ path }}"
+      - run: bash scripts/check.d/rust.sh

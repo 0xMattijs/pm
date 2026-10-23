@@ -1,0 +1,10 @@
+# Stack: Android (Kotlin, Jetpack Compose) in `{{ path }}/`
+
+- Kotlin, Jetpack Compose with Material 3, minSdk {{ android_min_sdk }}. Single-activity app.
+- Architecture: UI (Composables) -> ViewModel (StateFlow) -> repository.
+  Coroutines for async work. Feature packages under `{{ bundle_id }}`.
+- Declare dependencies in `gradle/libs.versions.toml` only. Never hard-code
+  versions in build files.
+- Tests: JUnit unit tests in `app/src/test/`, Compose UI tests in `app/src/androidTest/`.
+- Check: `scripts/check.sh android-kotlin` (lint + unit tests). Needs a JDK and
+  the Android SDK (`ANDROID_HOME`). The check is skipped if they're missing.

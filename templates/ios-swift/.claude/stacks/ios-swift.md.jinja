@@ -1,0 +1,13 @@
+# Stack: iOS (Swift, SwiftUI) in `{{ path }}/`
+
+- SwiftUI, iOS {{ ios_deployment_target }}+, Swift 6 strict concurrency. Use the
+  Observation framework (`@Observable`) for state and async/await for I/O.
+- The Xcode project is generated from `{{ path }}/project.yml` by XcodeGen and
+  isn't committed. Add files under `Sources/` or `Tests/`, then run
+  `xcodegen generate`. Never edit the `.xcodeproj`.
+- Add dependencies as Swift Package Manager packages under `packages:` in
+  `project.yml`.
+- Tests: Swift Testing (`import Testing`, `@Test`) in `Tests/`.
+- Check: `scripts/check.sh ios-swift`. This needs macOS and Xcode. On Linux the
+  check is skipped, and CI runs it on a macOS runner.
+- Bundle ID: `{{ bundle_id }}`.

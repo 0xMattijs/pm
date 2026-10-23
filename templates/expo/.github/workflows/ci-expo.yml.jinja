@@ -1,0 +1,51 @@
+name: CI (mobile)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["{{ path }}/**", "scripts/check.d/expo.sh", ".github/workflows/ci-expo.yml"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: "{{ path }}/package.json"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: "{{ path }}/pnpm-lock.yaml"
+      - run: bash scripts/check.d/expo.sh
+{%- if use_eas %}
+  preview:
+    if: github.event_name == 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: "{{ path }}"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: "{{ path }}/package.json"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: "{{ path }}/pnpm-lock.yaml"
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: {% raw %}${{ secrets.EXPO_TOKEN }}{% endraw %}
+      - run: pnpm install --frozen-lockfile
+      - uses: expo/expo-github-action/preview@v8
+        with:
+          working-directory: "{{ path }}"
+          command: eas update --auto --branch pr-{% raw %}${{ github.event.number }}{% endraw %}
+{%- endif %}

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)/{{ path }}"
+uv sync --quiet
+uv run ruff format --check .
+uv run ruff check .
+uv run pyright
+uv run pytest -q || { rc=$?; [ $rc -eq 5 ] && echo "no tests yet" || exit $rc; }

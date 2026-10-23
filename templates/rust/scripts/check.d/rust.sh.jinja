@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)/{{ path }}"
+cargo fmt --all --check
+cargo clippy --all-targets --quiet -- -D warnings
+cargo test --quiet

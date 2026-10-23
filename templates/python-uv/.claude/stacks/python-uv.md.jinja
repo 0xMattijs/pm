@@ -1,0 +1,9 @@
+# Stack: Python (uv) in `{{ path }}/`
+
+- Python {{ python_version }}, managed by uv. Never call `pip` or `python` directly.
+  Use `uv add <pkg>`, `uv add --dev <pkg>`, and `uv run <cmd>`.
+- Lint and format: ruff (the hook runs it on every edit). Types: pyright.
+  Tests: pytest under `{{ path }}/tests/`, named `test_*.py`.
+- Check: `scripts/check.sh python-uv`.
+- Layout: source in `{{ path }}/src/<package>/`, one module per concern, type
+  hints on every public function.

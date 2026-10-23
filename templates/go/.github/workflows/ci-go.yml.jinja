@@ -1,0 +1,19 @@
+name: CI (go)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["{{ path }}/**", "scripts/check.d/go.sh", ".github/workflows/ci-go.yml"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "{{ go_version }}"
+          cache-dependency-path: "{{ path }}/go.sum"
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          working-directory: "{{ path }}"
+      - run: bash scripts/check.d/go.sh

@@ -1,0 +1,10 @@
+# Stack: Flutter in `{{ path }}/`
+
+- Flutter stable, Dart null-safe. Feature-first layout: `lib/features/<feature>/`
+  with `data/`, `domain/`, and `ui/`. Shared code goes in `lib/core/`.
+- State: the approach recorded in the stack ADR (default: Riverpod). Don't mix approaches.
+- Add packages with `flutter pub add <pkg>`. Lints: `flutter_lints` in `analysis_options.yaml`.
+- Format: `dart format` (the hook runs it on every edit). Tests: `test/`
+  mirrors `lib/`. Widget tests for UI, unit tests for logic.
+- Check: `scripts/check.sh flutter`. Run: `flutter run`.
+- Bundle ID: `{{ bundle_id }}`.

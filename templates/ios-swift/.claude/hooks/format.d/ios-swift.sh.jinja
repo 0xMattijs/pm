@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+f="$1"; dir="$(git rev-parse --show-toplevel)/{{ path }}"
+case "$f" in "$dir"/*.swift) ;; *) exit 0 ;; esac
+command -v swift >/dev/null && swift format --help >/dev/null 2>&1 || exit 0
+swift format --in-place "$f" 2>/dev/null
+out=$(swift format lint "$f" 2>&1) || { echo "$out" >&2; exit 2; }
+exit 0

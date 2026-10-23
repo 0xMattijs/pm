@@ -1,0 +1,109 @@
+# One template, several layers. Apply each layer separately so each one
+# keeps its own answers file and updates independently:
+#   copier copy -d layer=base ...      -> .copier-answers.base.yml
+#   copier copy -d layer=python-uv ... -> .copier-answers.python-uv.yml
+_subdirectory: "templates/{{ layer }}"
+_answers_file: ".copier-answers.{{ layer }}.yml"
+_min_copier_version: "9.0.0"
+
+layer:
+  type: str
+  choices: [base, python-uv, ts-next, go, rust, expo, flutter, ios-swift, android-kotlin]
+  help: Which layer to apply
+
+project_name:
+  type: str
+  help: Human-readable project name
+  when: "{{ layer == 'base' }}"
+
+project_slug:
+  type: str
+  default: "{{ project_name | lower | replace(' ', '-') }}"
+  help: Repo and package name
+  when: "{{ layer == 'base' }}"
+
+project_description:
+  type: str
+  default: ""
+  help: One-line description
+  when: "{{ layer == 'base' }}"
+
+tracker:
+  type: str
+  choices: [files, github]
+  default: files
+  help: Where tasks live (single source of truth for task state)
+  when: "{{ layer == 'base' }}"
+
+planning:
+  type: str
+  choices: [native, gsd]
+  default: native
+  help: Planning flow after bootstrap
+  when: "{{ layer == 'base' }}"
+
+path:
+  type: str
+  default: "."
+  help: Directory of this stack inside the repo ("." for single-stack repos)
+  when: "{{ layer != 'base' }}"
+
+python_version:
+  type: str
+  default: "3.13"
+  when: "{{ layer == 'python-uv' }}"
+
+node_version:
+  type: str
+  default: "24"
+  when: "{{ layer == 'ts-next' }}"
+
+deploy_vercel:
+  type: bool
+  default: true
+  when: "{{ layer == 'ts-next' }}"
+
+go_version:
+  type: str
+  default: "stable"
+  when: "{{ layer == 'go' }}"
+
+app_name:
+  type: str
+  default: "App"
+  help: Display and module name for the mobile app (PascalCase for native)
+  when: "{{ layer in ['expo', 'flutter', 'ios-swift', 'android-kotlin'] }}"
+
+bundle_id:
+  type: str
+  default: "com.example.app"
+  help: Reverse-DNS bundle identifier / application ID
+  when: "{{ layer in ['expo', 'flutter', 'ios-swift', 'android-kotlin'] }}"
+
+ios_deployment_target:
+  type: str
+  default: "17.0"
+  when: "{{ layer == 'ios-swift' }}"
+
+android_min_sdk:
+  type: int
+  default: 26
+  when: "{{ layer == 'android-kotlin' }}"
+
+use_eas:
+  type: bool
+  default: true
+  help: Configure Expo Application Services for cloud builds and submissions
+  when: "{{ layer == 'expo' }}"
+
+# App skeletons seeded by mobile layers belong to the project after the first
+# copy. Updates leave them alone.
+_skip_if_exists:
+  - "**/Sources/**"
+  - "**/Tests/**"
+  - "**/app/src/**"
+  - "**/app/build.gradle.kts"
+  - "**/build.gradle.kts"
+  - "**/settings.gradle.kts"
+  - "**/gradle/libs.versions.toml"
+  - "**/project.yml"

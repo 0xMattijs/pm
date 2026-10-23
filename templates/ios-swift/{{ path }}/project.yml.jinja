@@ -1,0 +1,37 @@
+name: {{ app_name }}
+options:
+  deploymentTarget:
+    iOS: "{{ ios_deployment_target }}"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  {{ app_name }}:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: {{ bundle_id }}
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+  {{ app_name }}Tests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: {{ app_name }}
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  {{ app_name }}:
+    build:
+      targets:
+        {{ app_name }}: all
+        {{ app_name }}Tests: [test]
+    test:
+      targets: [{{ app_name }}Tests]

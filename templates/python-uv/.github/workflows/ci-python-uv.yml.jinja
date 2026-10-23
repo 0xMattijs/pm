@@ -1,0 +1,16 @@
+name: CI (python)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["{{ path }}/**", "scripts/check.d/python-uv.sh", ".github/workflows/ci-python-uv.yml"]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "{{ python_version }}"
+          enable-cache: true
+      - run: bash scripts/check.d/python-uv.sh
