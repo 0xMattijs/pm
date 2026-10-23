@@ -22,7 +22,12 @@ for kv in "$@"; do
   [[ "$kv" == path=* ]] && path="${kv#path=}"
 done
 
-uvx copier copy --quiet --defaults --vcs-ref HEAD "${data[@]}" "$SRC" "$dest"
+if [ -f "$dest/.copier-answers.$layer.yml" ]; then
+  echo "layer $layer already applied; use sync.sh to update it" >&2; exit 1
+fi
+# Layers own disjoint files, so --overwrite only replaces leftovers from a
+# failed earlier run. stdin is closed so Copier can never block on a prompt.
+uvx copier copy --quiet --defaults --overwrite --vcs-ref HEAD "${data[@]}" "$SRC" "$dest" </dev/null
 
 cd "$dest"
 chmod +x scripts/*.sh scripts/*.py scripts/check.d/*.sh .claude/hooks/*.sh .claude/hooks/format.d/*.sh 2>/dev/null || true
