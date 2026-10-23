@@ -94,6 +94,28 @@ Without the variable, the local checkout (`~/projects/pm`) is used.
   wave while that one is open, so agents never wait on a merge.
   `/babysit-pr` keeps each PR green.
 
+## Scheduled agent runs
+
+`.github/workflows/agent-run.yml` in each project runs the build loop in
+GitHub Actions, so work continues without a local session. It runs every 3
+hours once you set the repo variable `AGENT_RUNS_ENABLED=true`, or on demand
+from the Actions tab.
+
+1. **Precheck (no LLM).** `scripts/agent-precheck.py` checks for ready tasks,
+   a phase in progress, an unplanned next phase in the current milestone,
+   failing wave PRs, or answered `needs-human` issues. If there's nothing to
+   do, the run ends there and costs nothing.
+2. **Setup.** The run checks out the top of the open wave stack and installs
+   toolchains through each layer's `scripts/setup.d/<layer>.sh`.
+3. **Agent.** The run applies answered questions, runs `/babysit-pr` on the
+   open wave PRs, then continues `/execute-phase` with chaining. Questions
+   become `needs-human` issues. The agent can't merge or push to `main`.
+
+Setup: the `AGENT_GH_TOKEN` secret (a fine-grained token for the repo, so
+pushes trigger CI and the risk gate), plus `ANTHROPIC_API_KEY` (API billing,
+no plan limits) or `CLAUDE_CODE_OAUTH_TOKEN` (shares your subscription
+limits). `github-setup.sh` prints these steps.
+
 The review practices follow
 [PostHog's code review tips](https://posthog.com/newsletter/code-review-tips).
 
