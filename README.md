@@ -121,7 +121,8 @@ pushes plans to be wide and dispatches as early as it safely can:
 
 - **Plans for width.** The planner pins interfaces and stubs in wave 1, so
   later tasks build against them in parallel. `task.py lint` rejects a phase
-  whose dependency chain is longer than half its task count, unless
+  whose average parallelism (tasks divided by the longest dependency chain)
+  is below 1.5, unless
   `PHASE.md` says `Sequential: <reason>`.
 - **Dependency dispatch.** `task.py ready --slots` lists every task whose own
   dependencies and phase dependencies are done and whose files don't overlap

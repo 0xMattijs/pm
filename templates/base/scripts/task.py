@@ -407,11 +407,13 @@ def lint(tasks):
         n, d = len(mine), chain_depth(mine)
         plan = next(iter(sorted(PHASES.glob(f"{ph}-*/PHASE.md"))), None)
         sequential = plan is not None and "Sequential:" in plan.read_text()
-        if n >= 4 and d > n / 2 and not sequential:
+        # Average parallelism: tasks per step of the longest chain.
+        if n >= 4 and n / d < 1.5 and not sequential:
             problems.append(
-                f"phase {ph}: {n} tasks in a dependency chain of {d}, so at most "
-                f"{max(1, n - d + 1)} run at once. Pin interfaces and stubs in wave 1 so "
-                "more tasks run in parallel, or add 'Sequential: <reason>' to PHASE.md")
+                f"phase {ph}: {n} tasks in a dependency chain of {d} "
+                f"(average parallelism {n / d:.1f}, minimum 1.5). Pin interfaces and "
+                "stubs in wave 1 so more tasks run in parallel, or add "
+                "'Sequential: <reason>' to PHASE.md")
     open_tasks = [t for t in tasks if t["status"] != "done"]
     for i, a in enumerate(open_tasks):
         for b in open_tasks[i + 1:]:

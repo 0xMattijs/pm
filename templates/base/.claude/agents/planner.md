@@ -60,7 +60,8 @@ Relevant ADRs, library docs, and gotchas.
   instead of waiting for the real implementations. Aim for 3 or more tasks
   per wave after wave 1. Depend on a task only when you need its behavior,
   not just its interface. `scripts/task.py lint` rejects a phase whose
-  dependency chain is longer than half its task count. If the work really is
+  average parallelism (tasks divided by the longest dependency chain) is
+  below 1.5. If the work really is
   sequential, write `Sequential: <reason>` in PHASE.md.
 - Slice vertically, so each task ends in observable behavior.
 - Size each task for one implementer session, with a diff under 400 changed
