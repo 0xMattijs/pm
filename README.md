@@ -96,25 +96,43 @@ Without the variable, the local checkout (`~/projects/pm`) is used.
 
 ## Scheduled agent runs
 
-`.github/workflows/agent-run.yml` in each project runs the build loop in
-GitHub Actions, so work continues without a local session. It runs every 3
-hours once you set the repo variable `AGENT_RUNS_ENABLED=true`, or on demand
-from the Actions tab.
+Agents keep working without an open session. The **local loop** is the main
+scheduler, because it costs no GitHub Actions minutes:
 
-1. **Precheck (no LLM).** `scripts/agent-precheck.py` checks for ready tasks,
+```sh
+ln -s ~/projects/pm/scripts/pm-agent.sh ~/.local/bin/pm-agent   # once
+pm-agent add 0xMattijs/acme      # register a project
+pm-agent install                 # systemd user timer, every 30 minutes
+pm-agent list                    # last result per project
+pm-agent logs 0xMattijs/acme     # follow the latest run
+```
+
+Each pass, per project:
+
+1. **Clone.** Uses a dedicated clone in `~/.local/share/pm/agents/`, never
+   your working copy, checked out at the top of the open wave stack.
+2. **Precheck (no LLM).** `scripts/agent-precheck.py` checks for ready tasks,
    a phase in progress, an unplanned next phase in the current milestone,
    failing wave PRs, or answered `needs-human` issues. If there's nothing to
-   do, the run ends there and costs nothing.
-2. **Setup.** The run checks out the top of the open wave stack and installs
-   toolchains through each layer's `scripts/setup.d/<layer>.sh`.
-3. **Agent.** The run applies answered questions, runs `/babysit-pr` on the
-   open wave PRs, then continues `/execute-phase` with chaining. Questions
-   become `needs-human` issues. The agent can't merge or push to `main`.
+   do, the pass ends there.
+3. **Agent.** Runs headless `claude -p` with `.claude/agent-run.md`: it
+   applies answered questions, babysits the open wave PRs, and continues
+   `/execute-phase` with chaining. Questions become `needs-human` issues. It
+   can't merge or push to `main`. A lock prevents overlapping runs, and a
+   timeout caps each run at 5 hours.
 
-Setup: the `AGENT_GH_TOKEN` secret (a fine-grained token for the repo, so
-pushes trigger CI and the risk gate), plus `ANTHROPIC_API_KEY` (API billing,
-no plan limits) or `CLAUDE_CODE_OAUTH_TOKEN` (shares your subscription
-limits). `github-setup.sh` prints these steps.
+`claude -p` uses your Claude login, so it shares your plan's usage limits.
+Put `ANTHROPIC_API_KEY=...` in `~/.config/pm/agent.env` to bill the API
+instead. If the timer can't reach the keyring that holds your `gh` login, add
+`GH_TOKEN=...` there too. The timer is persistent, so a pass missed while the
+machine slept runs on wake.
+
+**Fallback: GitHub Actions.** `.github/workflows/agent-run.yml` runs the same
+pass on demand from the Actions tab, for when your machine is off. It needs
+the `AGENT_GH_TOKEN` secret (a fine-grained token, so its pushes trigger CI)
+and `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`. Its schedule is
+commented out, because every scheduled run uses runner minutes even when it
+has nothing to do.
 
 The review practices follow
 [PostHog's code review tips](https://posthog.com/newsletter/code-review-tips).

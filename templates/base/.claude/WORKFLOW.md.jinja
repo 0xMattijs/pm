@@ -113,8 +113,11 @@ orchestrator commits tracker changes on the phase branch.
 
 ## Unattended runs
 
-`.github/workflows/agent-run.yml` runs this workflow on a schedule in GitHub
-Actions, with no human present. In those runs:
+Unattended runs happen in two places, with no human present. On the human's
+machine, the pm agent loop (`pm-agent.sh`, a systemd timer) runs a pass every
+30 minutes in its own clone of the repo. In GitHub Actions,
+`.github/workflows/agent-run.yml` runs on demand as a fallback. Both run the
+no-LLM precheck first and follow `.claude/agent-run.md`. In those runs:
 
 - **Questions become issues.** Never wait for an answer. Open an issue
   labelled `needs-human` that contains the question, the options, your

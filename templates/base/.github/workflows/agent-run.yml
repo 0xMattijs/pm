@@ -1,5 +1,6 @@
-# Scheduled, unattended agent runs: babysit open wave PRs, then continue
-# /execute-phase (with phase chaining) where the last run stopped.
+# On-demand agent run in GitHub Actions: the fallback for when your machine
+# is off. The local loop (`pm-agent.sh` in the pm repo) is the primary
+# scheduler, because it costs no Actions minutes.
 #
 # Setup (once per repo):
 #   1. Secret AGENT_GH_TOKEN: a fine-grained token for this repo only, with
@@ -8,12 +9,13 @@
 #      don't.
 #   2. Secret ANTHROPIC_API_KEY (API billing, no plan limits) or
 #      CLAUDE_CODE_OAUTH_TOKEN (shares your subscription's limits).
-#   3. Variable AGENT_RUNS_ENABLED=true to turn on the schedule. Manual runs
-#      (Actions > Agent run > Run workflow) work without it.
+#   3. Optional: to also run on a schedule, uncomment `schedule` below and set
+#      the repo variable AGENT_RUNS_ENABLED=true. Every scheduled run uses
+#      runner minutes, even when the precheck finds nothing to do.
 name: Agent run
 on:
-  schedule:
-    - cron: "17 */3 * * *"  # every 3 hours; edit to taste
+  # schedule:
+  #   - cron: "17 */3 * * *"
   workflow_dispatch:
     inputs:
       task:
@@ -60,9 +62,7 @@ jobs:
 
       - name: Check out the top of the wave stack
         run: |
-          top=$(gh pr list --state open --search "head:wave/" --json headRefName -q '.[].headRefName' | sort -V | tail -1)
-          if [ -n "$top" ]; then git switch "$top"; fi
-          echo "on branch: $(git branch --show-current)"
+          bash scripts/agent-checkout.sh
           git config user.name "pm-agent"
           git config user.email "pm-agent@users.noreply.github.com"
 
@@ -86,21 +86,10 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Unattended agent run (GitHub Actions). Follow .claude/WORKFLOW.md, section
-            "Unattended runs". Nobody can answer questions during this run.
-
+            Read .claude/agent-run.md and follow it.
             Precheck: ${{ steps.pre.outputs.reason }}
             Mode: ${{ inputs.task || 'auto' }}
-
-            1. Read open issues labelled needs-human. Apply each human answer, then
-               close the issue with a comment that starts with <!-- agent -->.
-            2. Unless the mode is execute: run /babysit-pr once on each open wave PR,
-               bottom of the stack first.
-            3. Unless the mode is babysit: run /execute-phase ${{ inputs.phase }} ${{ inputs.once && '--once' || '' }}
-            4. After 4.5 hours, start no new waves. Finish the current gate, commit the
-               tracker changes, and push every wave branch you touched.
-            5. End with a summary of at most 10 lines: PRs opened or updated, tasks done,
-               blocked items, and needs-human issues opened.
+            Phase and flags for /execute-phase: ${{ inputs.phase }} ${{ inputs.once && '--once' || '' }}
           claude_args: |
             --max-turns 1500
             --allowedTools Bash,Read,Edit,Write,MultiEdit,Grep,Glob,Agent,Skill,TodoWrite,WebFetch,WebSearch

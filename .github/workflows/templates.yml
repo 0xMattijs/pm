@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: shellcheck
-        run: shellcheck -S warning scripts/*.sh templates/base/scripts/check.sh templates/base/scripts/setup.sh templates/*/scripts/setup.d/*.sh templates/base/.claude/hooks/format.sh
+        run: shellcheck -S warning scripts/*.sh templates/base/scripts/check.sh templates/base/scripts/setup.sh templates/base/scripts/agent-checkout.sh templates/*/scripts/setup.d/*.sh templates/base/.claude/hooks/format.sh
       - name: python syntax
         run: python3 -m py_compile templates/base/scripts/task.py templates/base/scripts/risk.py templates/base/scripts/agent-precheck.py templates/base/.claude/hooks/subagent-guard.py
       - name: plugin manifest

@@ -59,11 +59,12 @@ fi
 
 step "agent run labels and setup"
 gh label create needs-human --color d93f0b --description "An agent needs a decision" --force -R "$repo" >/dev/null
-echo "TODO for scheduled agent runs (.github/workflows/agent-run.yml):"
+echo "Scheduled agent runs: on your machine, run: pm-agent add $repo"
+echo "Optional fallback, on-demand runs in GitHub Actions (.github/workflows/agent-run.yml):"
 echo "      1. Create a fine-grained token for $repo only (Contents, Pull requests, Issues, Actions: read/write),"
 echo "         then: gh secret set AGENT_GH_TOKEN -R $repo"
 echo "      2. gh secret set ANTHROPIC_API_KEY -R $repo   (or rely on CLAUDE_CODE_OAUTH_TOKEN, which shares plan limits)"
-echo "      3. To turn on the schedule: gh variable set AGENT_RUNS_ENABLED --body true -R $repo"
+echo "      3. Optional schedule in Actions (uses runner minutes): uncomment it, then gh variable set AGENT_RUNS_ENABLED --body true -R $repo"
 
 if grep -q '^tracker: github' .copier-answers.base.yml 2>/dev/null; then
   step "tracker labels"
