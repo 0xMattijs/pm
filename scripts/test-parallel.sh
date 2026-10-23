@@ -96,17 +96,15 @@ echo '{"max_agents": 1}' > .claude/pm.json
 ok "--slots respects max_agents"
 
 # A fresh checkout loses uncommitted tracker state; pull-tracker restores it
-# from the wave branches.
-p=$(ls -d .claude/worktrees/wave-01-3)
+# from the wave branches. Phase 01's state is committed on its top wave.
+p=.claude/worktrees/wave-01-3
 cp -r docs/phases/01-foundation "$p/docs/phases/" && git -C "$p" add -A && git -C "$p" commit -qm "chore(tracker): 01"
-git stash push -q --include-untracked -- docs/phases && git stash drop -q
-[ ! -e docs/phases/01-foundation/T01-a.md ] || [ "$($T show 01-01 --json | grep -o '"status": "[a-z]*"')" != '"status": "done"' ] || fail "setup: state should be gone"
+rm -rf docs/phases/01-foundation
 $W pull-tracker >/dev/null
 [ "$($T show 01-04 --json | grep -o '"status": "[a-z]*"')" = '"status": "done"' ] || fail "pull-tracker should restore 01-04 as done"
 ok "pull-tracker rebuilds task state from the wave branches"
-git add -A >/dev/null; git stash -q 2>/dev/null || true; $W pull-tracker >/dev/null; git stash drop -q 2>/dev/null || true
 
-for i in 04-01 04-02 04-03; do $T set $i done >/dev/null 2>&1 || true; done
+for i in 04-01 04-02 04-03; do $T set $i done >/dev/null; done
 [ -z "$($T next-phases)" ] || fail "milestone 2 must not start without /replan: $($T next-phases)"
 python3 scripts/agent-precheck.py | grep -q 'milestone boundary before 05-teams' || fail "precheck should report the boundary"
 ok "chaining stops at the milestone boundary"
