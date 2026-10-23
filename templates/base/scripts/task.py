@@ -297,6 +297,8 @@ def ready(tasks, phase=None, limit=None):
     taken = [p for t in tasks if t["status"] in ("doing", "review") for p in owned_paths(t["body"])]
     out = []
     for t in sorted(tasks, key=lambda t: (int(t["wave"]), t["phase"], t["id"])):
+        if limit is not None and len(out) >= limit:
+            break
         if t["status"] != "todo" or (phase and t["phase"] != phase):
             continue
         if not all(status.get(d) == "done" for d in t["depends"]):
@@ -308,8 +310,6 @@ def ready(tasks, phase=None, limit=None):
             continue
         out.append(t)
         taken += owns
-        if limit is not None and len(out) >= limit:
-            break
     return out
 
 
