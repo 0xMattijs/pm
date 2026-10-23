@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.3.0 (2026-10-23)
+
+### Added
+
+- scale agents with width-first plans, dependency dispatch, and concurrent phases
+
+### Fixed
+
+- judge plan width by average parallelism
+
+### Changed
+
+- parallel execution
+
 ## v0.2.0 (2026-10-23)
 
 First release of pm, a Claude Code plugin that bootstraps projects for agent-driven development.
